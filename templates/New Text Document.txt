@@ -1,0 +1,540 @@
+1. System Architecture Overview
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERFACE LAYER                                    │
+├──────────────┬──────────────┬──────────────┬──────────────┬────────────────────────┤
+│  Dashboard   │   Results    │   Terminal   │    Tools     │    Correlation         │
+│  (HTML/JS)   │   (HTML/JS)  │   (HTML/JS)  │   (HTML/JS)  │    (HTML/JS)           │
+└──────┬───────┴──────┬───────┴──────┬───────┴──────┬───────┴───────┬────────────────┘
+       │              │              │              │               │
+       └──────────────┼──────────────┼──────────────┼───────────────┘
+                      │              │              │
+                      ▼              ▼              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           FASTAPI APPLICATION (fast11.py)                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         ROUTING & MIDDLEWARE                                 │   │
+│  │  • Authentication (JWT)  • Rate Limiting  • CORS  • WebSockets (Socket.IO) │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+└───────┬──────────────────────┬──────────────────────┬─────────────────────────────┘
+        │                      │                      │
+        ▼                      ▼                      ▼
+┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+│   DATABASE    │      │    REDIS      │      │   PROMETHEUS  │
+│   (SQLite)    │      │   (Cache)     │      │   (Metrics)   │
+│  • Users      │      │  • Sessions   │      │  • GPU Stats  │
+│  • Scans      │      │  • Tasks      │      │  • Attack Log │
+│  • Attacks    │      │  • Results    │      │  • Latency    │
+└───────────────┘      └───────────────┘      └───────────────┘
+
+2. 7-Layer Neural Architecture
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                         SENTINEL BRAIN (sentinel_brain.py)                          │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         LAYER 1: CNN Pattern Scanner                         │   │
+│  │  Input: Packet streams → Output: Anomaly score + 256-dim feature vector    │   │
+│  │  Model: Conv1d(1→32→64→128) + AdaptivePooling + FC layers                  │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                                      ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         LAYER 2: GNN Strategist                              │   │
+│  │  Input: Attack graph → Output: Optimal attack paths                        │   │
+│  │  Graph: Nodes (assets/events) + Edges (connections)                        │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                                      ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      LAYER 3: MiniLM Librarian (RAG)                        │   │
+│  │  Input: Query → Output: Similar attack patterns + payloads                 │   │
+│  │  Model: all-MiniLM-L6-v2 + FAISS vector index                              │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                                      ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      LAYER 4: BNN Arbiter (Bayesian)                        │   │
+│  │  Input: All layer outputs → Output: Decision + Confidence + Uncertainty    │   │
+│  │  Weights: CNN(0.25) + GNN(0.25) + MiniLM(0.20) + Tools(0.30)              │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                    ┌─────────────────┼─────────────────┐                           │
+│                    ▼                 ▼                 ▼                           │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐        │
+│  │  LAYER 5: GAN       │  │  LAYER 6: EMILY AI  │  │  LAYER 7: SPINE     │        │
+│  │  (Evolver)          │  │  (DeepSeek-Coder)   │  │  (Correlation)      │        │
+│  │  • Payload mutation │  │  • 4-step reasoning │  │  • Event streaming  │        │
+│  │  • WAF evasion      │  │  • Code generation  │  │  • RL weight update │        │
+│  │  • Fitness scoring  │  │  • Exploit analysis │  │  • Feedback loops   │        │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘        │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+3. Correlation Engine Data Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                         CORRELATION ENGINE (correlation_engine.py)                  │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
+│  │   Nmap       │    │   SQLMap     │    │   Nikto      │    │   Hydra      │     │
+│  │   Output     │    │   Output     │    │   Output     │    │   Output     │     │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘     │
+│         │                   │                   │                   │             │
+│         ▼                   ▼                   ▼                   ▼             │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 1: Tool Result Normalizer                          │   │
+│  │  normalize_nmap() │ normalize_sqlmap() │ normalize_nikto() │ normalize_hydra()│
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                                      ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         LAYER 2: Event Bus                                   │   │
+│  │  • publish()  • subscribe()  • publish_many()                              │   │
+│  │  Queue: Async event processing with subscribers                            │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                                      ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      LAYER 3: Correlation Engine                            │   │
+│  │  Rules:                                                                     │   │
+│  │  • SQLi + DB Exposure → Critical (escalate)                                │   │
+│  │  • Credentials + Open Port → Attack Chain (lateral movement)               │   │
+│  │  • Shell + Credential Dump → Full Compromise                               │   │
+│  │  • WPA Handshake + Crack → WiFi Compromised                                │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                      │                                              │
+│                    ┌─────────────────┼─────────────────┐                           │
+│                    ▼                 ▼                 ▼                           │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐        │
+│  │   Attack Graph      │  │    Risk Engine      │  │   Decision Engine   │        │
+│  │   • Nodes           │  │    • Score calc     │  │   • RAG search      │        │
+│  │   • Edges           │  │    • Asset scores   │  │   • Recommendations│        │
+│  │   • Paths           │  │    • Trend analysis │  │   • Attack chains   │        │
+│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘        │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+4. Database Schema
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              DATABASE SCHEMA (SQLite)                               │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐            │
+│  │      users      │      │  scan_history   │      │  attack_history │            │
+│  ├─────────────────┤      ├─────────────────┤      ├─────────────────┤            │
+│  │ id (PK)         │◄─────│ user_id (FK)    │      │ user_id (FK)    │◄────────┐  │
+│  │ username        │      │ target          │      │ target          │         │  │
+│  │ email           │      │ scan_type       │      │ attack_type     │         │  │
+│  │ password        │      │ tool_used       │      │ tool_used       │         │  │
+│  │ role            │      │ results (JSON)  │      │ command         │         │  │
+│  │ score           │      │ vulnerabilities │      │ output          │         │  │
+│  │ api_key         │      │ status          │      │ success         │         │  │
+│  └─────────────────┘      └─────────────────┘      └─────────────────┘         │  │
+│           │                                                                      │  │
+│           ▼                                                                      │  │
+│  ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐         │  │
+│  │ security_events │      │  attack_paths   │      │  ai_analyses    │         │  │
+│  ├─────────────────┤      ├─────────────────┤      ├─────────────────┤         │  │
+│  │ event_id        │      │ path_id         │      │ analysis_id     │         │  │
+│  │ event_type      │      │ asset           │      │ user_id (FK)    │         │  │
+│  │ severity        │      │ path_json       │      │ strategies(JSON)│         │  │
+│  │ asset           │      │ score           │      │ risk_score      │         │  │
+│  │ evidence (JSON) │      │ status          │      │ confidence      │         │  │
+│  │ source_tool     │      │ detected_at     │      │ timestamp       │         │  │
+│  └─────────────────┘      └─────────────────┘      └─────────────────┘         │  │
+│                                                                                  │  │
+│  ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐         │  │
+│  │  kali_tools     │      │ vulnerability_db│      │   user_feedback │         │  │
+│  ├─────────────────┤      ├─────────────────┤      ├─────────────────┤         │  │
+│  │ name            │      │ cve_id          │      │ user_id (FK)    │         │  │
+│  │ category        │      │ name            │      │ rating          │         │  │
+│  │ description     │      │ description     │      │ actual_outcome  │         │  │
+│  │ command_template│      │ severity        │      │ feedback_text   │         │  │
+│  │ risk_level      │      │ cvss_score      │      │ tool_used       │         │  │
+│  │ is_installed    │      │ remediation     │      │ timestamp       │         │  │
+│  └─────────────────┘      └─────────────────┘      └─────────────────┘         │  │
+│                                                                                  │  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+5. API Endpoint Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              API ENDPOINT STRUCTURE                                 │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         AUTHENTICATION                                      │   │
+│  │  POST /login          → JWT token + cookie                                 │   │
+│  │  POST /register       → Create user + hash password                        │   │
+│  │  GET /logout          → Clear cookie                                       │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         SCAN ENDPOINTS                                       │   │
+│  │  POST /api/scan/url    → Start neural scan → Background task               │   │
+│  │  POST /api/scan        → Run specific tool (nmap/nikto/sqlmap)             │   │
+│  │  GET /api/scans/{id}   → Get scan results                                  │   │
+│  │  GET /api/scan/status  → Poll scan progress                                │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         ATTACK ENDPOINTS                                     │   │
+│  │  POST /api/attack/execute → Run exploit (metasploit/hydra/sqlmap)          │   │
+│  │  POST /api/attack         → Legacy attack endpoint                         │   │
+│  │  GET /api/attacks         → List attack history                            │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         AI ENDPOINTS                                         │   │
+│  │  POST /api/ai/analyze-target → Intelligence engine analysis                │   │
+│  │  POST /api/ai/rag/search     → RAG vulnerability search                    │   │
+│  │  POST /api/ai/attack-chain   → Generate attack chain                       │   │
+│  │  POST /api/ai/feedback       → Submit feedback for learning                │   │
+│  │  POST /api/emily/analyze     → Emily AI exploit analysis                   │   │
+│  │  POST /api/emily/generate-payload → Payload generation                     │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         CORRELATION ENDPOINTS                                │   │
+│  │  GET /api/correlation/status   → System health                              │   │
+│  │  GET /api/correlation/attack-graph → Graph visualization                   │   │
+│  │  GET /api/correlation/risk     → Risk scores                                │   │
+│  │  POST /api/correlation/analyze → Pattern analysis                          │   │
+│  │  GET /api/correlation/predict  → Next attack prediction                    │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         METRICS ENDPOINTS                                    │   │
+│  │  GET /metrics          → Prometheus metrics                                 │   │
+│  │  GET /api/status       → System health + GPU stats                          │   │
+│  │  GET /api/metrics/summary → Aggregated metrics                              │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+6. Tool Execution Flow
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           TOOL EXECUTION PIPELINE                                    │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  User clicks "Run" in Tool Station                                                  │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  Frontend: collectToolParams(tool) → Build JSON payload                     │   │
+│  │  { tool: "sqlmap", target: "https://target.com", params: {...} }            │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  POST /api/attack/execute → FastAPI endpoint                                │   │
+│  │  • Validate authentication                                                  │   │
+│  │  • Check tool permissions                                                   │   │
+│  │  • Route to PenetrationTools method                                         │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  PenetrationTools.method() → Execute/subprocess                             │   │
+│  │  • Build command with parameters                                            │   │
+│  │  • SafetyCage.validate() → Check whitelist + danger patterns                │   │
+│  │  • subprocess.run() with timeout                                            │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  Save to database                                                            │   │
+│  │  • AttackHistory record                                                      │   │
+│  │  • Update user score                                                         │   │
+│  │  • Emit Socket.IO event                                                      │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  Correlation Engine Processing (Background)                                 │   │
+│  │  • Normalize tool output → SecurityEvent                                    │   │
+│  │  • Publish to EventBus                                                      │   │
+│  │  • Update Attack Graph                                                       │   │
+│  │  • Recalculate Risk Score                                                    │   │
+│  │  • Generate AI suggestions                                                   │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │  Real-time UI Update (Socket.IO)                                            │   │
+│  │  • tool_result event → Update terminal output                               │   │
+│  │  • layer_update event → Update layer progress bars                          │   │
+│  │  • ai_suggestion event → Display attack suggestions                         │   │
+│  │  • attack_graph event → Update visualization                                │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+7. Training Pipeline
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           TRAINING PIPELINE (train_pipeline.py)                     │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      DATASET PREPARATION                                     │   │
+│  │                                                                              │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                       │   │
+│  │  │ CICIDS2017   │  │   EMBER      │  │   SOREL      │                       │   │
+│  │  │ (Network)    │  │  (Malware)   │  │   (Text)     │                       │   │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘                       │   │
+│  └─────────┼─────────────────┼─────────────────┼───────────────────────────────┘   │
+│            │                 │                 │                                   │
+│            ▼                 ▼                 ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         MODEL TRAINING                                       │   │
+│  │                                                                              │   │
+│  │  train_cnn()        train_bayesian()     train_minilm()    train_deepseek() │   │
+│  │       │                   │                    │                  │          │   │
+│  │       ▼                   ▼                    ▼                  ▼          │   │
+│  │  ┌─────────┐        ┌─────────┐          ┌─────────┐        ┌─────────┐     │   │
+│  │  │ CNN.pth │        │Bayesian│          │MiniLM   │        │DeepSeek │     │   │
+│  │  │         │        │  .pkl   │          │ + FAISS │        │  LoRA   │     │   │
+│  │  └─────────┘        └─────────┘          └─────────┘        └─────────┘     │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      MODEL EVALUATION (evaluate_models.py)                  │   │
+│  │                                                                              │   │
+│  │  Metrics: Accuracy, Precision, Recall, F1, AUC, Confusion Matrix           │   │
+│  │  Threshold tuning: Youden's J statistic for optimal threshold               │   │
+│  │  Report: JSON + Markdown summary                                            │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+8. Component Interaction Diagram
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           COMPONENT INTERACTIONS                                     │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│                              ┌─────────────────┐                                    │
+│                              │   User Browser  │                                    │
+│                              │  (Dashboard UI) │                                    │
+│                              └────────┬────────┘                                    │
+│                                       │                                             │
+│                    ┌──────────────────┼──────────────────┐                          │
+│                    │                  │                  │                          │
+│                    ▼                  ▼                  ▼                          │
+│            ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                    │
+│            │   HTTP/REST │    │ WebSocket   │    │  Static     │                    │
+│            │   (API)     │    │ (Socket.IO) │    │  Files      │                    │
+│            └──────┬──────┘    └──────┬──────┘    └──────┬──────┘                    │
+│                   │                  │                  │                           │
+│                   ▼                  ▼                  ▼                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         FASTAPI APP (fast11.py)                              │   │
+│  │                                                                              │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │   │
+│  │  │ Auth        │  │ Scans       │  │ Attacks     │  │ AI         │         │   │
+│  │  │ Middleware  │──│ Routes      │──│ Routes      │──│ Routes     │         │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘         │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                  │                  │                  │                 │
+│         ▼                  ▼                  ▼                  ▼                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
+│  │  Database   │    │  Redis      │    │  Celery     │    │  Prometheus │          │
+│  │  (SQLite)   │    │  (Cache)    │    │  (Tasks)    │    │  (Metrics)  │          │
+│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘          │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         CORE ENGINES                                         │   │
+│  │                                                                              │   │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │   │
+│  │  │  Orchestrator   │◄─│  Correlation    │─►│  Risk Engine    │              │   │
+│  │  │  (Controller)   │  │  Engine         │  │  (Scoring)      │              │   │
+│  │  └────────┬────────┘  └─────────────────┘  └─────────────────┘              │   │
+│  │           │                                                                   │   │
+│  │           ▼                                                                   │   │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │   │
+│  │  │  Sentinel Brain │  │  Intelligence   │  │  Emily AI       │              │   │
+│  │  │  (7 Layers)     │  │  Engine         │  │  (Exploits)     │              │   │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘              │   │
+│  │                                                                              │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         EXTERNAL TOOLS                                       │   │
+│  │                                                                              │   │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐           │   │
+│  │  │  Nmap   │  │ SQLMap  │  │ Metaspl │  │  Hydra  │  │  Nikto  │           │   │
+│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘           │   │
+│  │                                                                              │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+9. File Structure & Module Dependencies
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                         FILE STRUCTURE & DEPENDENCIES                               │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  fast11.py ─────────────────────────────────────────────────────────────────────┐  │
+│       │                                                                         │  │
+│       ├──► sentinel_brain.py ──► CNN, GNN, MiniLM, BNN, GAN, Emily, Spine      │  │
+│       │                                                                         │  │
+│       ├──► correlation_engine.py ──► EventBus, AttackGraph, RiskEngine         │  │
+│       │                                                                         │  │
+│       ├──► orchestrator.py ──► NeuralPipeline, ActiveExploitEngine             │  │
+│       │                                                                         │  │
+│       ├──► rag_system.py ──► FAISS index, MiniLM embeddings                     │  │
+│       │                                                                         │  │
+│       ├──► integration_adapter.py ──► FastAPI ↔ Correlation bridge              │  │
+│       │                                                                         │  │
+│       └──► sentinel_utils.py ──► SafetyCage, fetch_internet_intel              │  │
+│                                                                                  │  │
+│  ┌─────────────────────────────────────────────────────────────────────────────┘  │
+│  │                                                                                 │
+│  ▼                                                                                 │
+│  training/                                                                         │
+│  ├── train_pipeline.py ──► Orchestrates all training                              │
+│  ├── train_cicids2017.py ──► CNN on network traffic                               │
+│  ├── train_ember.py ──► RandomForest on malware features                          │
+│  ├── train_sorel.py ──► LightGBM on text descriptions                             │
+│  ├── train_deepseek_lora.py ──► LoRA fine-tuning on DeepSeek                      │
+│  └── evaluate_models.py ──► Performance metrics                                   │
+│                                                                                     │
+│  models/                                                                            │
+│  ├── layer2_cnn.pth ──► PyTorch CNN weights                                        │
+│  ├── layer4_bayesian.pkl ──► Scikit-learn model                                    │
+│  ├── deepseek_lora/ ──► LoRA adapter weights                                       │
+│  └── layer3_minilm/ ──► SentenceTransformer model                                  │
+│                                                                                     │
+│  templates/                                                                         │
+│  ├── dashboard.html ──► Main UI                                                    │
+│  ├── results.html ──► Scan results viewer                                          │
+│  ├── terminal.html ──► AI terminal                                                 │
+│  └── correlation.html ──► Attack graph viewer                                      │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+10. Data Flow: Scan to Suggestion
+text
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                    DATA FLOW: Scan → Analysis → Suggestion                          │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────┐                                                                   │
+│  │ User enters │                                                                   │
+│  │    URL      │                                                                   │
+│  └──────┬──────┘                                                                   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 1. POST /api/scan/url                                                        │   │
+│  │    → Create scan_id                                                          │   │
+│  │    → Start background task                                                   │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│         │                                                                           │
+│         ▼                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 2. Background: run_neural_attack_analysis()                                  │   │
+│  │                                                                              │   │
+│  │    ┌──────────────┐                                                          │   │
+│  │    │  Nmap scan   │──► Open ports + services                                 │   │
+│  │    └──────┬───────┘                                                          │   │
+│  │           │                                                                   │   │
+│  │           ▼                                                                   │   │
+│  │    ┌──────────────┐                                                          │   │
+│  │    │  Nikto scan  │──► Web vulnerabilities                                   │   │
+│  │    └──────┬───────┘                                                          │   │
+│  │           │                                                                   │   │
+│  │           ▼                                                                   │   │
+│  │    ┌──────────────┐                                                          │   │
+│  │    │  SQLMap scan │──► SQL injection findings                                │   │
+│  │    └──────┬───────┘                                                          │   │
+│  │           │                                                                   │   │
+│  │           ▼                                                                   │   │
+│  │    ┌──────────────┐                                                          │   │
+│  │    │  Aggregate   │──► all_vulnerabilities[]                                 │   │
+│  │    │  findings    │                                                          │   │
+│  │    └──────┬───────┘                                                          │   │
+│  └───────────┼─────────────────────────────────────────────────────────────────┘   │
+│              │                                                                      │
+│              ▼                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 3. Correlation Engine Processing                                            │   │
+│  │                                                                              │   │
+│  │    normalize_nmap() → SecurityEvent(PORT_SCAN, SERVICE_DETECTION)           │   │
+│  │    normalize_nikto() → SecurityEvent(XSS_POTENTIAL, SQL_INJECTION)          │   │
+│  │    normalize_sqlmap() → SecurityEvent(SQL_INJECTION_CONFIRMED)              │   │
+│  │                                                                              │   │
+│  │    EventBus.publish() → CorrelationEngine.handle()                          │   │
+│  │                                                                              │   │
+│  │    Rules matched:                                                            │   │
+│  │    • SQLi + DB Exposure → Critical (escalate)                               │   │
+│  │    • Multiple XSS → Web App Vulnerable                                      │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│              │                                                                      │
+│              ▼                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 4. AI Analysis                                                               │   │
+│  │                                                                              │   │
+│  │    IntelligenceEngine.analyze()                                              │   │
+│  │    ├── ContextBuilder.build()                                                │   │
+│  │    ├── LLMReasoner.identify_entry_points()                                   │   │
+│  │    ├── LLMReasoner.evaluate_impact()                                         │   │
+│  │    ├── LLMReasoner.recommend_strategy()                                      │   │
+│  │    └── AttackGraphBuilder.build_graph()                                      │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│              │                                                                      │
+│              ▼                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 5. Emily AI Payload Generation                                               │   │
+│  │                                                                              │   │
+│  │    For each vulnerability:                                                   │   │
+│  │    ├── Match with exploit database                                           │   │
+│  │    ├── Generate payload (reverse shell / web shell / SQLi)                  │   │
+│  │    └── Create attack vector with steps                                       │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│              │                                                                      │
+│              ▼                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐   │
+│  │ 6. Socket.IO Broadcast                                                        │   │
+│  │                                                                              │   │
+│  │    ┌────────────────────────────────────────────────────────────────────┐   │   │
+│  │    │ layer_update (7x) ──► Update progress bars                         │   │   │
+│  │    ├────────────────────────────────────────────────────────────────────┤   │   │
+│  │    │ ai_suggestion (3x) ──► Display attack cards                        │   │   │
+│  │    ├────────────────────────────────────────────────────────────────────┤   │   │
+│  │    │ attack_graph ──► Render D3.js visualization                        │   │   │
+│  │    ├────────────────────────────────────────────────────────────────────┤   │   │
+│  │    │ scan_complete ──► Re-enable scan button                            │   │   │
+│  │    └────────────────────────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+📊 Summary Statistics
+Component	Lines of Code	Files	Purpose
+Backend (fast11.py)	~11,000	1	Main application
+Sentinel Brain	~1,800	1	Neural layers
+Correlation Engine	~1,200	1	Event correlation
+Orchestrator	~800	1	Pipeline control
+Training Scripts	~1,500	6	Model training
+HTML Templates	~8,000	12	UI pages
+Total	~24,300	22+	Complete system
+
+These diagrams show the complete architecture of Sentinel-1 v6.5. Would you like me to create diagrams for specific components or explain any part in more detail?

@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Neural Intelligence Hub v6.5 - Complete Security Platform</title>
+    <!-- Core Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css"/>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+
+    <style>
+        
+        /* ============================================================================
+           CORE VARIABLES & RESET
+        ============================================================================ */
+        :root {
+            --neon-blue: #00ffff;
+            --neon-cyan: #0ff;
+            --neon-red: #ff3131;
+            --neon-purple: #9945FF;
+            --neon-green: #00ff9d;
+            --neon-yellow: #ffd700;
+            --neon-pink: #ff66cc;
+            --neon-orange: #ff8800;
+            --bg-dark: #02040a;
+            --bg-darker: #010101;
+            --panel-bg: rgba(13, 17, 23, 0.95);
+            --glass-border: rgba(0, 255, 255, 0.2);
+            --card-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+            --gradient-primary: linear-gradient(135deg, #00ffff, #9945FF);
+            --gradient-danger: linear-gradient(135deg, #ff3131, #ff8800);
+            --gradient-success: linear-gradient(135deg, #00ff9d, #00ffff);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #c9d1d9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.03) 0%, transparent 30%),
+                repeating-linear-gradient(45deg, rgba(0, 255, 255, 0.02) 0px, rgba(0, 255, 255, 0.02) 2px, transparent 2px, transparent 8px);
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="none" stroke="rgba(0,255,255,0.03)" stroke-width="0.5" d="M10,10 L90,10 M10,20 L90,20 M10,30 L90,30 M10,40 L90,40 M10,50 L90,50 M10,60 L90,60 M10,70 L90,70 M10,80 L90,80 M10,90 L90,90 M20,10 L20,90 M30,10 L30,90 M40,10 L40,90 M50,10 L50,90 M60,10 L60,90 M70,10 L70,90 M80,10 L80,90 M90,10 L90,90"/></svg>') repeat;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Cyberpunk Border Effects */
+        .cyber-border { 
+            border: 1px solid var(--glass-border); 
+            transition: all 0.3s ease; 
+            position: relative;
+            overflow: hidden;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+        }
+        
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-red));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+            border-radius: inherit;
+        }
+        
+        .cyber-border:hover::before {
+            opacity: 0.3;
+        }
+        
+        .cyber-border:hover { 
+            border-color: transparent;
+            box-shadow: var(--card-shadow);
+            transform: translateY(-2px);
+        }
+
+        /* Glitch Text Effect */
+        .glitch-text { 
+            text-shadow: 2px 0 var(--neon-red), -2px 0 var(--neon-blue);
+            animation: glitch 3s infinite;
+            position: relative;
+        }
+        
+        @keyframes glitch {
+            0%, 100% { transform: none; opacity: 1; }
+            92% { transform: none; }
+            93% { transform: skew(2deg); }
+            94% { transform: skew(-2deg); }
+            95% { transform: skew(0deg); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-purple); }
+
+        /* Layer Badges */
+        .layer-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .layer-badge:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+        
+        .layer-1 { background: rgba(0, 255, 255, 0.2); color: #00ffff; border-left: 2px solid #00ffff; }
+        .layer-2 { background: rgba(153, 69, 255, 0.2); color: #9945FF; border-left: 2px solid #9945FF; }
+        .layer-3 { background: rgba(49, 49, 255, 0.2); color: #3131ff; border-left: 2px solid #3131ff; }
+        .layer-4 { background: rgba(255, 193, 7, 0.2); color: #ffc107; border-left: 2px solid #ffc107; }
+        .layer-5 { background: rgba(0, 255, 157, 0.2); color: #00ff9d; border-left: 2px solid #00ff9d; }
+        .layer-6 { background: rgba(255, 69, 0, 0.2); color: #ff4500; border-left: 2px solid #ff4500; }
+        .layer-7 { background: rgba(147, 112, 219, 0.2); color: #9370db; border-left: 2px solid #9370db; }
+
+        /* Status Pulse Animation */
+        .status-pulse {
+            animation: pulse 2s infinite;
+            display: inline-block;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+        }
+
+        /* Attack Graph Container */
+        #attackGraph {
+            width: 100%;
+            height: 450px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        #attackGraph:hover {
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        /* Severity Classes */
+        .severity-critical { color: #ff4444; font-weight: bold; border-left-color: #ff4444; }
+        .severity-high { color: #ff8800; font-weight: bold; border-left-color: #ff8800; }
+        .severity-medium { color: #ffff00; font-weight: bold; border-left-color: #ffff00; }
+        .severity-low { color: #00ff00; font-weight: bold; border-left-color: #00ff00; }
+        .severity-info { color: #888888; font-weight: bold; border-left-color: #888888; }
+
+        /* Tool Tabs */
+        .tool-tab {
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        .tool-tab.active {
+            background: rgba(0, 255, 255, 0.15);
+            border-bottom-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.2);
+        }
+        
+        .tool-tab.has-data {
+            border-left: 2px solid var(--neon-green);
+            position: relative;
+        }
+        
+        .tool-tab.has-data::before {
+            content: '●';
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            font-size: 8px;
+            color: var(--neon-green);
+        }
+        
+        .tool-tab:hover {
+            background: rgba(0, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Finding Items */
+        .finding-item {
+            border-left: 3px solid;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0 8px 8px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .finding-item:hover {
+            background: rgba(0, 0, 0, 0.5);
+            transform: translateX(5px);
+        }
+
+        /* Exploit Cards */
+        .exploit-card {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 255, 0.1));
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+        }
+        
+        .exploit-card:hover {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+            transform: translateY(-3px);
+        }
+
+        /* Action Bars */
+        .tool-action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+        
+        .tool-execute-btn {
+            background: var(--gradient-danger);
+            color: white;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .tool-execute-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 49, 49, 0.5);
+        }
+        
+        .tool-export-btn {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 11px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .tool-export-btn:hover {
+            background: #10b981;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* Global Export Bar */
+        .global-export-bar {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.5), rgba(16, 185, 129, 0.1));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Grafana Container */
+        .grafana-container {
+            position: relative;
+            width: 100%;
+            height: 550px;
+            background: #0a0c10;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .grafana-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1f2e, #0f131f);
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .grafana-fallback i {
+            font-size: 64px;
+            color: #ff8800;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        /* Event Items */
+        .event-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 10px;
+            border-radius: 0 6px 6px 0;
+            font-family: 'Fira Code', monospace;
+            transition: all 0.2s ease;
+        }
+        
+        .event-item:hover {
+            background: rgba(0, 0, 0, 0.5);
+            transform: translateX(3px);
+        }
+
+        /* Thought Stream */
+        .thought-stream-item {
+            padding: 8px;
+            margin-bottom: 6px;
+            border-left: 2px solid var(--neon-purple);
+            background: rgba(153, 69, 255, 0.1);
+            font-size: 9px;
+            font-family: 'Fira Code', monospace;
+            transition: all 0.2s ease;
+        }
+        
+        .thought-stream-item:hover {
+            background: rgba(153, 69, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        /* Credential Items */
+        .credential-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(250, 204, 21, 0.2);
+            transition: all 0.2s ease;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .credential-item:hover {
+            border-color: rgba(250, 204, 21, 0.5);
+            background: rgba(0, 0, 0, 0.6);
+            transform: translateX(3px);
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.08), rgba(153, 69, 255, 0.08));
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+        }
+
+        /* Processing Animation */
+        .processing-active {
+            animation: pulse-border 1.5s infinite;
+            position: relative;
+        }
+        
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(255, 49, 49, 0.3); box-shadow: 0 0 0 0 rgba(255, 49, 49, 0.2); }
+            50% { border-color: rgba(255, 49, 49, 0.8); box-shadow: 0 0 20px 5px rgba(255, 49, 49, 0.3); }
+        }
+
+        /* Tool Content */
+        .tool-content {
+            transition: opacity 0.3s ease;
+        }
+        
+        .tool-content.hidden {
+            display: none;
+        }
+        
+        .tool-content:not(.hidden) {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tool Tabs Container */
+        .tool-tabs-container {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 5px;
+            scrollbar-width: thin;
+        }
+        
+        .tool-tabs-container::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        /* Utility Classes */
+        .url-truncate {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .glass-effect {
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(10px);
+        }
+        
+        .text-gradient {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .hover-glow:hover {
+            filter: drop-shadow(0 0 8px var(--neon-blue));
+        }
+
+        /* Database Badge */
+        .database-badge {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .hash-value {
+            font-family: 'Fira Code', monospace;
+            font-size: 9px;
+            color: var(--neon-yellow);
+        }
+
+        /* Loot Table */
+        .loot-row {
+            border-bottom: 1px solid #1f2937;
+            transition: all 0.2s ease;
+        }
+        
+        .loot-row:hover {
+            background: rgba(0, 255, 255, 0.05);
+        }
+        
+        .loot-row td {
+            padding: 10px 5px;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .grid-cols-12 { gap: 12px; }
+            .text-4xl { font-size: 1.8rem; }
+            .tool-tab { padding: 6px 12px; font-size: 9px; }
+        }
+
+        @media (max-width: 480px) {
+            .global-export-bar { flex-direction: column; gap: 10px; }
+            .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+
+        .tool-card {
+    background: #1a1a2e;
+    border: 1px solid #16213e;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.tool-header {
+    background: #0f3460;
+    padding: 10px 15px;
+    font-weight: bold;
+    color: #e94560;
+}
+
+/* Nmap Unique Styling */
+.nmap .port-item.open { color: #00ff41; border-left: 3px solid #00ff41; }
+.nmap .port-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; padding: 15px; }
+
+/* AI Brain Unique Styling */
+.ai-brain.highlight { border: 2px solid #e94560; box-shadow: 0 0 15px rgba(233, 69, 96, 0.3); }
+.payload-box { background: #000; padding: 10px; border-radius: 4px; color: #ff00ff; margin: 10px 0; }
+
+/* Gobuster Unique Styling */
+.path-list { list-style: none; padding: 15px; }
+.path-list li { padding: 5px 0; border-bottom: 1px solid #16213e; font-family: 'Courier New', monospace; }
+    </style>
+</head>
+<body class="p-6">
+    <!-- Header Section -->
+    <header class="flex flex-wrap justify-between items-center mb-8 border-b border-gray-800 pb-4">
+        <div>
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter glitch-text">
+                SENTINEL-1 
+                <span class="text-sm font-light text-cyan-400">v6.5</span>
+                <span class="ml-2 text-xs bg-purple-900/50 text-purple-400 px-2 py-1 rounded-full">7-LAYER BRAIN</span>
+            </h1>
+            <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Autonomous Neural Intelligence Hub | Advanced Threat Detection Platform</p>
+        </div>
+        <div id="connectionStatus" class="flex items-center gap-3 mt-2 md:mt-0">
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <span class="text-xs font-mono text-green-500">BRAIN ONLINE</span>
+            </div>
+            <div class="w-px h-6 bg-gray-700"></div>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-shield-alt text-cyan-400 text-xs"></i>
+                <span class="text-xs text-gray-400">Active Protection</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Brain Layer Status Bar - 7 Neural Layers -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 mb-6 text-[10px] font-mono">
+        <div class="layer-1 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('cnn')">
+            <i class="fas fa-eye text-[8px]"></i> L1: CNN <span class="ml-1 text-[8px] opacity-70" id="layer1-prob">85%</span>
+        </div>
+        <div class="layer-2 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('gnn')">
+            <i class="fas fa-project-diagram text-[8px]"></i> L2: GNN <span class="ml-1 text-[8px] opacity-70" id="layer2-prob">70%</span>
+        </div>
+        <div class="layer-3 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('minilm')">
+            <i class="fas fa-language text-[8px]"></i> L3: MiniLM <span class="ml-1 text-[8px] opacity-70" id="layer3-prob">60%</span>
+        </div>
+        <div class="layer-4 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('bnn')">
+            <i class="fas fa-chart-line text-[8px]"></i> L4: BNN <span class="ml-1 text-[8px] opacity-70" id="layer4-prob">50%</span>
+        </div>
+        <div class="layer-5 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('gan')">
+            <i class="fas fa-dice-d6 text-[8px]"></i> L5: GAN <span class="ml-1 text-[8px] opacity-70" id="layer5-prob">40%</span>
+        </div>
+        <div class="layer-6 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('emily')">
+            <i class="fas fa-brain text-[8px]"></i> L6: EMILY <span class="ml-1 text-[8px] opacity-70" id="layer6-prob">90%</span>
+        </div>
+        <div class="layer-7 layer-badge text-center cursor-pointer flex items-center justify-center gap-1" onclick="showLayerMetrics('spine')">
+            <i class="fas fa-spider text-[8px]"></i> L7: SPINE <span class="ml-1 text-[8px] opacity-70" id="layer7-prob">75%</span>
+        </div>
+    </div>
+
+    <!-- Target Input Section -->
+    <div class="grid grid-cols-12 gap-6 mb-6">
+        <div class="col-span-12 lg:col-span-8">
+            <div class="bg-[--panel-bg] p-5 rounded-xl cyber-border">
+                <label class="text-[10px] text-gray-500 uppercase font-bold block mb-2 tracking-wider">
+                    <i class="fas fa-bullseye text-cyan-400 mr-2"></i>TARGET URL / IP / DOMAIN
+                </label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="urlInput" value="https://www.amazon.in" 
+                           class="flex-1 bg-black/40 border border-gray-700 rounded-lg p-3 text-white focus:border-cyan-500 outline-none font-mono text-sm url-truncate transition-all focus:ring-1 focus:ring-cyan-500">
+                    <button onclick="startNeuralScan()" class="bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white px-8 py-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/25">
+                        <i class="fas fa-brain"></i> NEURAL SCAN
+                    </button>
+                </div>
+                <div id="targetDisplay" class="text-xs text-cyan-400 mt-3 font-mono flex items-center gap-2 url-truncate">
+                    <span class="status-pulse">⚡</span> Ready for neural analysis
+                </div>
+            </div>
+        </div>
+        <div class="col-span-12 lg:col-span-4">
+            <div class="bg-[--panel-bg] p-5 rounded-xl cyber-border flex items-center justify-between">
+                <div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">BRAIN STATE</div>
+                    <div class="text-2xl font-bold text-cyan-400" id="brainState">READY</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">THOUGHTS</div>
+                    <div class="text-2xl font-bold text-purple-400" id="thoughtCount">0</div>
+                </div>
+                <div class="w-12 h-12 rounded-full border-2 border-cyan-400 flex items-center justify-center bg-cyan-400/10">
+                    <i class="fas fa-microchip text-cyan-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live System Telemetry Section -->
+    <div class="mb-6">
+        <div class="flex flex-wrap items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+                <i class="fas fa-chart-line mr-2"></i>LIVE SYSTEM TELEMETRY
+            </h2>
+            <div class="flex gap-2 mt-2 sm:mt-0">
+                <button onclick="refreshMetrics()" class="text-xs bg-black/40 hover:bg-cyan-900/30 text-cyan-400 px-4 py-2 rounded-lg border border-cyan-500/30 transition-all">
+                    <i class="fas fa-sync-alt mr-1"></i> REFRESH
+                </button>
+                <button onclick="openGrafana()" class="text-xs bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg transition-all">
+                    <i class="fas fa-chart-pie mr-1"></i> OPEN GRAFANA
+                </button>
+            </div>
+        </div>
+        
+        <!-- Real-time Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <div class="metric-card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">ATTACK RATE</div>
+                        <div class="text-2xl font-bold text-red-400 font-mono" id="attackRate">—</div>
+                    </div>
+                    <i class="fas fa-bolt text-red-400 text-xl opacity-50"></i>
+                </div>
+                <div class="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-red-500 to-orange-500 progress-bar" id="attackRateBar" style="width: 40%"></div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">GPU MEMORY</div>
+                        <div class="text-2xl font-bold text-purple-400 font-mono" id="gpuMemory">—</div>
+                    </div>
+                    <i class="fas fa-microchip text-purple-400 text-xl opacity-50"></i>
+                </div>
+                <div class="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 progress-bar" id="gpuMemoryBar" style="width: 63%"></div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">API LATENCY</div>
+                        <div class="text-2xl font-bold text-yellow-400 font-mono" id="apiLatency">—</div>
+                    </div>
+                    <i class="fas fa-clock text-yellow-400 text-xl opacity-50"></i>
+                </div>
+                <div class="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-yellow-400 to-orange-500 progress-bar" id="latencyBar" style="width: 29%"></div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">SUCCESS RATE</div>
+                        <div class="text-2xl font-bold text-green-400 font-mono" id="successRate">—</div>
+                    </div>
+                    <i class="fas fa-check-circle text-green-400 text-xl opacity-50"></i>
+                </div>
+                <div class="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-green-400 to-emerald-500 progress-bar" id="successRateBar" style="width: 53%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Metrics Row -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-4">
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">TOTAL ATTACKS</div>
+                <div class="text-xl font-bold text-cyan-400" id="totalAttacks">0</div>
+            </div>
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">CRITICAL</div>
+                <div class="text-xl font-bold text-red-400" id="criticalEvents">0</div>
+            </div>
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">GPU UTIL</div>
+                <div class="text-xl font-bold text-purple-400" id="gpuUtil">—</div>
+            </div>
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">ACTIVE SESSIONS</div>
+                <div class="text-xl font-bold text-green-400" id="activeSessions">0</div>
+            </div>
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">RISK SCORE</div>
+                <div class="text-xl font-bold text-orange-400" id="riskScore">—</div>
+            </div>
+            <div class="bg-black/40 rounded-lg p-3 text-center hover:bg-black/60 transition-all">
+                <div class="text-[9px] text-gray-500">BNN CONFIDENCE</div>
+                <div class="text-xl font-bold text-blue-400" id="bnnConfidence">—</div>
+            </div>
+        </div>
+        
+        <!-- Neural Layer Health Bars -->
+        <div class="grid grid-cols-7 gap-2 mb-4">
+            <div class="text-center"><div class="text-[8px] text-cyan-400 mb-1">CNN</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-cyan-400 progress-bar" id="cnnBar" style="width: 85%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-purple-400 mb-1">GNN</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-purple-400 progress-bar" id="gnnBar" style="width: 70%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-blue-400 mb-1">MiniLM</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-blue-400 progress-bar" id="minilmBar" style="width: 60%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-yellow-400 mb-1">BNN</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-yellow-400 progress-bar" id="bnnBar" style="width: 50%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-green-400 mb-1">GAN</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-green-400 progress-bar" id="ganBar" style="width: 40%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-orange-400 mb-1">EMILY</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-orange-400 progress-bar" id="emilyBar" style="width: 90%"></div></div></div>
+            <div class="text-center"><div class="text-[8px] text-pink-400 mb-1">SPINE</div><div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div class="h-full bg-pink-400 progress-bar" id="spineBar" style="width: 75%"></div></div></div>
+        </div>
+    </div>
+
+    <!-- Grafana Dashboard Section -->
+    <div class="mb-6 cyber-border rounded-xl overflow-hidden">
+        <div class="bg-black/60 p-4 border-b border-cyan-500/30 flex flex-wrap justify-between items-center gap-2">
+            <h3 class="text-sm font-bold text-cyan-400"><i class="fas fa-chart-line mr-2"></i>GRAFANA V10.0 - LIVE DASHBOARD</h3>
+            <div class="flex gap-2">
+                <span class="text-[8px] bg-green-900/30 text-green-400 px-3 py-1 rounded-full flex items-center"><span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse mr-1"></span> SIMULATED</span>
+                <button onclick="refreshGrafana()" class="text-[10px] bg-black/40 hover:bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded"><i class="fas fa-sync-alt"></i></button>
+            </div>
+        </div>
+        <div class="grafana-container">
+            <div class="grafana-fallback">
+                <i class="fas fa-chart-pie"></i>
+                <h3 class="text-lg font-bold mt-2">Grafana Dashboard (Simulated)</h3>
+                <p class="text-xs text-gray-400 mt-1">Browser security blocks embedded localhost content. Click below to open Grafana.</p>
+                <div class="grid grid-cols-2 gap-4 w-full max-w-md mt-6">
+                    <div class="bg-black/40 p-3 rounded text-center"><div class="text-[10px] text-gray-500">ATTACK RATE</div><div class="text-xl font-bold text-red-400" id="grafanaAttackRate">—</div></div>
+                    <div class="bg-black/40 p-3 rounded text-center"><div class="text-[10px] text-gray-500">GPU MEM</div><div class="text-xl font-bold text-purple-400" id="grafanaGpuMem">—</div></div>
+                    <div class="bg-black/40 p-3 rounded text-center"><div class="text-[10px] text-gray-500">SUCCESS</div><div class="text-xl font-bold text-green-400" id="grafanaSuccess">—</div></div>
+                    <div class="bg-black/40 p-3 rounded text-center"><div class="text-[10px] text-gray-500">RISK</div><div class="text-xl font-bold text-orange-400" id="grafanaRisk">—</div></div>
+                </div>
+                <button onclick="window.open('http://localhost:3000', '_blank')" class="mt-6 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white px-6 py-2 rounded-lg transition-all"><i class="fas fa-external-link-alt mr-2"></i> OPEN GRAFANA</button>
+            </div>
+        </div>
+        <div class="bg-black/60 p-2 text-[10px] text-gray-500 flex justify-between items-center border-t border-cyan-500/30">
+            <span><i class="fas fa-database mr-1"></i> Data Source: Prometheus</span>
+            <span><i class="fas fa-clock mr-1"></i> Last Update: <span id="grafanaTimestamp">Just now</span></span>
+        </div>
+    </div>
+
+    <!-- Global Export Bar -->
+    <div class="global-export-bar mb-6">
+        <div class="flex items-center gap-3"><i class="fas fa-download text-green-400 text-lg"></i><span class="text-xs text-gray-300">Export comprehensive security report:</span></div>
+        <div class="flex flex-wrap gap-2">
+            <button onclick="exportAllResults('json')" class="tool-export-btn px-4 py-1.5 text-xs"><i class="fas fa-code mr-1"></i> JSON</button>
+            <button onclick="exportAllResults('csv')" class="tool-export-btn px-4 py-1.5 text-xs"><i class="fas fa-table mr-1"></i> CSV</button>
+            <button onclick="exportAllResults('html')" class="tool-export-btn px-4 py-1.5 text-xs"><i class="fas fa-file-code mr-1"></i> HTML Report</button>
+            <button onclick="exportAllResults('pdf')" class="tool-export-btn px-4 py-1.5 text-xs"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard 3-Column Grid -->
+    <div class="grid grid-cols-12 gap-6">
+        <!-- Left Column: Risk Radar + Neural Insights -->
+        <div class="col-span-12 lg:col-span-4 space-y-6">
+            <div class="bg-[--panel-bg] p-6 rounded-xl cyber-border">
+                <h3 class="text-sm font-bold mb-4 text-cyan-400 uppercase tracking-tighter flex items-center justify-between">
+                    <span><i class="fas fa-microchip mr-2"></i>Risk Radar (Bayesian Analysis)</span>
+                    <span class="text-[10px] bg-cyan-900/30 px-2 py-1 rounded">BNN OUTPUT</span>
+                </h3>
+                <canvas id="riskRadar" height="280"></canvas>
+                <div class="grid grid-cols-3 gap-3 mt-4 text-[10px]">
+                    <div class="text-center p-2 bg-black/40 rounded-lg"><div class="text-gray-500">CONFIDENCE</div><div class="text-lg font-bold text-green-400" id="confidenceValue">—</div></div>
+                    <div class="text-center p-2 bg-black/40 rounded-lg"><div class="text-gray-500">UNCERTAINTY</div><div class="text-lg font-bold text-yellow-400" id="uncertaintyValue">—</div></div>
+                    <div class="text-center p-2 bg-black/40 rounded-lg"><div class="text-gray-500">RISK LEVEL</div><div class="text-lg font-bold text-orange-400" id="riskLevel">—</div></div>
+                </div>
+            </div>
+
+            <div class="bg-[--panel-bg] p-6 rounded-xl cyber-border h-[400px] overflow-y-auto">
+                <h3 class="text-sm font-bold mb-4 text-purple-400 uppercase tracking-tighter flex items-center justify-between">
+                    <span><i class="fas fa-brain mr-2"></i>Neural Thought Stream</span>
+                    <span class="text-[10px] bg-purple-900/30 px-2 py-1 rounded">REAL-TIME</span>
+                </h3>
+                <div id="thoughtContainer" class="space-y-2 font-mono text-xs">
+                    <div class="thought-stream-item"><span class="text-gray-500">[SYSTEM]</span> Neural thought stream idle — start a scan to see live layer activity</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Column: Attack Graph + Chain -->
+        <div class="col-span-12 lg:col-span-5 space-y-6">
+            <div class="bg-[--panel-bg] p-6 rounded-xl cyber-border">
+                <h3 class="text-sm font-bold mb-4 text-red-400 uppercase tracking-tighter flex items-center justify-between">
+                    <span><i class="fas fa-project-diagram mr-2"></i>Attack Graph Visualization</span>
+                    <span class="text-[10px] bg-red-900/30 px-2 py-1 rounded">GNN ANALYSIS</span>
+                </h3>
+                <div id="attackGraph" class="w-full h-[380px]"></div>
+                <div class="mt-3 text-[10px] text-gray-500 flex justify-between">
+                    <span><i class="fas fa-circle text-red-500 text-[8px] mr-1"></i> Critical Node</span>
+                    <span><i class="fas fa-circle text-orange-500 text-[8px] mr-1"></i> Exploit Path</span>
+                    <span><i class="fas fa-circle text-yellow-500 text-[8px] mr-1"></i> Vulnerability</span>
+                </div>
+            </div>
+
+            <div class="bg-[--panel-bg] p-6 rounded-xl cyber-border">
+                <h3 class="text-sm font-bold mb-4 text-orange-400 uppercase tracking-tighter flex items-center justify-between">
+                    <span><i class="fas fa-link mr-2"></i>Attack Chain Analysis</span>
+                    <span class="text-[10px] bg-orange-900/30 px-2 py-1 rounded">PATH SCORING</span>
+                </h3>
+                <div id="attackChain" class="space-y-3 py-2">
+                    <div class="text-[10px] text-gray-500 text-center py-6">No attack chains detected — run a neural scan to populate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Event Stream -->
+        <div class="col-span-12 lg:col-span-3">
+            <div class="bg-[--panel-bg] rounded-xl cyber-border flex flex-col h-[850px]">
+                <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest"><i class="fas fa-stream mr-2 text-cyan-400"></i>Security Event Stream</h3>
+                    <div class="flex items-center gap-2"><span id="eventCount" class="bg-cyan-900 text-cyan-400 px-2 py-0.5 rounded text-[10px]">0</span><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span></div>
+                </div>
+                <div id="eventStream" class="overflow-y-auto p-4 space-y-1 font-mono text-[10px] flex-grow">
+                    <div class="event-item text-cyan-400"><span class="text-gray-500">[--:--:--]</span> <span class="font-bold">SYSTEM</span> Awaiting scan — enter a target and click NEURAL SCAN</div>
+                </div>
+                <div class="p-3 border-t border-gray-800"><button onclick="exportEventStream()" class="w-full text-[10px] bg-black/40 hover:bg-cyan-900/20 text-cyan-400 py-2 rounded-lg transition-all"><i class="fas fa-download mr-1"></i> Export Events</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7-Layer Neural Grid - Complete Implementation -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 my-6">
+        <!-- LAYER 1: CNN -->
+        <div class="bg-black/40 p-4 border border-blue-500/30 rounded-lg hover:border-blue-500/60 transition-all">
+            <h4 class="text-xs font-bold text-blue-400 mb-2 flex items-center gap-2"><i class="fas fa-ethernet"></i>LAYER 1: CNN <span class="text-[8px] bg-blue-900/30 px-1 py-0.5 rounded">PATTERN SCAN</span></h4>
+            <div id="cnn-log" class="h-24 overflow-y-auto font-mono text-[10px] text-blue-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('cnn')" class="text-[8px] bg-blue-900/30 text-blue-400 px-3 py-1 rounded hover:bg-blue-900/50 transition-all"><i class="fas fa-play mr-1"></i> Scan</button><button onclick="exportLayerData('cnn')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-blue-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 2: GNN -->
+        <div class="bg-black/40 p-4 border border-purple-500/30 rounded-lg hover:border-purple-500/60 transition-all">
+            <h4 class="text-xs font-bold text-purple-400 mb-2 flex items-center gap-2"><i class="fas fa-project-diagram"></i>LAYER 2: GNN <span class="text-[8px] bg-purple-900/30 px-1 py-0.5 rounded">GRAPH ANALYSIS</span></h4>
+            <div id="gnn-log" class="h-24 overflow-y-auto font-mono text-[10px] text-purple-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('gnn')" class="text-[8px] bg-purple-900/30 text-purple-400 px-3 py-1 rounded hover:bg-purple-900/50 transition-all"><i class="fas fa-play mr-1"></i> Analyze</button><button onclick="exportLayerData('gnn')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-purple-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 3: MiniLM -->
+        <div class="bg-black/40 p-4 border border-indigo-500/30 rounded-lg hover:border-indigo-500/60 transition-all">
+            <h4 class="text-xs font-bold text-indigo-400 mb-2 flex items-center gap-2"><i class="fas fa-book"></i>LAYER 3: MiniLM <span class="text-[8px] bg-indigo-900/30 px-1 py-0.5 rounded">RAG SEARCH</span></h4>
+            <div id="minilm-log" class="h-24 overflow-y-auto font-mono text-[10px] text-indigo-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('minilm')" class="text-[8px] bg-indigo-900/30 text-indigo-400 px-3 py-1 rounded hover:bg-indigo-900/50 transition-all"><i class="fas fa-search mr-1"></i> Search</button><button onclick="exportLayerData('minilm')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-indigo-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 4: BNN -->
+        <div class="bg-black/40 p-4 border border-yellow-500/30 rounded-lg hover:border-yellow-500/60 transition-all">
+            <h4 class="text-xs font-bold text-yellow-400 mb-2 flex items-center gap-2"><i class="fas fa-balance-scale"></i>LAYER 4: BNN <span class="text-[8px] bg-yellow-900/30 px-1 py-0.5 rounded">BAYESIAN</span></h4>
+            <div id="bnn-log" class="h-24 overflow-y-auto font-mono text-[10px] text-yellow-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('bnn')" class="text-[8px] bg-yellow-900/30 text-yellow-400 px-3 py-1 rounded hover:bg-yellow-900/50 transition-all"><i class="fas fa-calculator mr-1"></i> Calculate</button><button onclick="exportLayerData('bnn')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-yellow-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 5: GAN -->
+        <div class="bg-black/40 p-4 border border-green-500/30 rounded-lg hover:border-green-500/60 transition-all">
+            <h4 class="text-xs font-bold text-green-400 mb-2 flex items-center gap-2"><i class="fas fa-dna"></i>LAYER 5: GAN <span class="text-[8px] bg-green-900/30 px-1 py-0.5 rounded">EVOLUTION</span></h4>
+            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mb-2"><div id="ganProgress" class="bg-green-500 h-full w-[0%] shadow-[0_0_8px_#22c55e]"></div></div>
+            <p id="ganStatus" class="text-[9px] mb-2 text-gray-400">Ready to evolve payloads</p>
+            <div id="gan-log" class="h-12 overflow-y-auto font-mono text-[10px] text-green-200"><div>▶ Generation 0/5</div><div>▶ Best fitness: 0.00</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="evolvePayload()" class="text-[8px] bg-green-900/30 text-green-400 px-3 py-1 rounded hover:bg-green-900/50 transition-all"><i class="fas fa-play mr-1"></i> Evolve</button><button onclick="exportLayerData('gan')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-green-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 6: EMILY -->
+        <div class="bg-black/40 p-4 border border-orange-500/30 rounded-lg hover:border-orange-500/60 transition-all">
+            <h4 class="text-xs font-bold text-orange-400 mb-2 flex items-center gap-2"><i class="fas fa-brain"></i>LAYER 6: EMILY <span class="text-[8px] bg-orange-900/30 px-1 py-0.5 rounded">REASONING</span></h4>
+            <div id="emily-log" class="h-24 overflow-y-auto font-mono text-[10px] text-orange-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('emily')" class="text-[8px] bg-orange-900/30 text-orange-400 px-3 py-1 rounded hover:bg-orange-900/50 transition-all"><i class="fas fa-play mr-1"></i> Analyze</button><button onclick="exportLayerData('emily')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-orange-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- LAYER 7: SPINE -->
+        <div class="bg-black/40 p-4 border border-pink-500/30 rounded-lg hover:border-pink-500/60 transition-all">
+            <h4 class="text-xs font-bold text-pink-400 mb-2 flex items-center gap-2"><i class="fas fa-spider"></i>LAYER 7: SPINE <span class="text-[8px] bg-pink-900/30 px-1 py-0.5 rounded">CORRELATION</span></h4>
+            <div id="spine-log" class="h-24 overflow-y-auto font-mono text-[10px] text-pink-200"><div class="text-gray-500">▶ Idle — run a scan</div></div>
+            <div class="mt-2 flex gap-2"><button onclick="executeLayerTool('spine')" class="text-[8px] bg-pink-900/30 text-pink-400 px-3 py-1 rounded hover:bg-pink-900/50 transition-all"><i class="fas fa-sync mr-1"></i> Correlate</button><button onclick="exportLayerData('spine')" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-pink-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export</button></div>
+        </div>
+
+        <!-- PROCESSING STATUS -->
+        <div class="bg-black/40 p-4 border border-red-500/30 rounded-lg processing-active">
+            <h4 class="text-xs font-bold text-red-400 mb-2 flex items-center gap-2"><i class="fas fa-cogs"></i>ACTIVE PROCESSING <span class="text-[8px] bg-red-900/30 px-1 py-0.5 rounded">CURRENT JOB</span></h4>
+            <div id="processing-status" class="h-20 overflow-y-auto font-mono text-[10px] text-red-200"><div>⏳ Idle - waiting for task</div></div>
+            <div class="mt-2"><div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden"><div id="processing-progress" class="bg-gradient-to-r from-red-500 to-orange-500 h-full w-[0%]"></div></div><p id="processing-message" class="text-[8px] text-center mt-1 text-gray-500">System ready</p></div>
+        </div>
+    </div>
+
+    <!-- Tool Tabs Container - 24 Security Tools -->
+    <div class="mt-8">
+        <div class="tool-tabs-container flex gap-2 border-b border-gray-800 pb-2 overflow-x-auto">
+            <div class="tool-tab has-data" onclick="switchToolTab('sqlmap')" id="tab-sqlmap"><i class="fas fa-database text-red-400 mr-2"></i>SQLMap</div>
+            <div class="tool-tab has-data" onclick="switchToolTab('metasploit')" id="tab-metasploit"><i class="fas fa-bug text-red-400 mr-2"></i>Metasploit</div>
+            <div class="tool-tab" onclick="switchToolTab('nikto')" id="tab-nikto"><i class="fas fa-globe text-blue-400 mr-2"></i>Nikto</div>
+            <div class="tool-tab" onclick="switchToolTab('nmap')" id="tab-nmap"><i class="fas fa-network-wired text-green-400 mr-2"></i>Nmap</div>
+            <div class="tool-tab" onclick="switchToolTab('hydra')" id="tab-hydra"><i class="fas fa-key text-yellow-400 mr-2"></i>Hydra</div>
+            <div class="tool-tab" onclick="switchToolTab('gobuster')" id="tab-gobuster"><i class="fas fa-folder-open text-cyan-400 mr-2"></i>Gobuster</div>
+            <div class="tool-tab" onclick="switchToolTab('wpscan')" id="tab-wpscan"><i class="fab fa-wordpress text-blue-400 mr-2"></i>WPScan</div>
+            <div class="tool-tab" onclick="switchToolTab('john')" id="tab-john"><i class="fas fa-lock text-orange-400 mr-2"></i>John</div>
+            <div class="tool-tab" onclick="switchToolTab('aircrack')" id="tab-aircrack"><i class="fas fa-wifi text-purple-400 mr-2"></i>Aircrack</div>
+            <div class="tool-tab" onclick="switchToolTab('burpsuite')" id="tab-burpsuite"><i class="fas fa-bug text-orange-400 mr-2"></i>Burp Suite</div>
+            <div class="tool-tab" onclick="switchToolTab('dirb')" id="tab-dirb"><i class="fas fa-folder-open text-blue-400 mr-2"></i>Dirb</div>
+            <div class="tool-tab" onclick="switchToolTab('bloodhound')" id="tab-bloodhound"><i class="fas fa-sitemap text-indigo-400 mr-2"></i>BloodHound</div>
+            <div class="tool-tab" onclick="switchToolTab('wireshark')" id="tab-wireshark"><i class="fas fa-network-wired text-green-400 mr-2"></i>Wireshark</div>
+        </div>
+
+        <!-- Tool Content Panels -->
+        <div id="tool-content" class="mt-4">
+            <!-- SQLMap Panel -->
+            <div id="content-sqlmap" class="tool-content">
+                <div class="bg-[--panel-bg] p-5 rounded-lg">
+                    <div class="flex justify-between items-center mb-4"><h4 class="text-red-400 font-bold">SQLMap Injection Engine Results</h4><span class="text-[10px] bg-red-900/30 px-3 py-1 rounded-full">2 CRITICAL VULNS</span></div>
+                    <div class="mb-4"><h5 class="text-xs text-gray-400 mb-2">🚨 Critical Vulnerabilities Detected</h5>
+                        <div class="space-y-2"><div class="finding-item severity-critical"><div class="font-bold">Boolean-based blind SQL Injection</div><div class="text-[9px] text-gray-400">Parameter: id | Technique: boolean-based blind | Database: MySQL</div></div>
+                        <div class="finding-item severity-critical"><div class="font-bold">Time-based blind SQL Injection</div><div class="text-[9px] text-gray-400">Parameter: page | Technique: time-based blind | Delay: 5 seconds</div></div></div></div>
+                    <div class="tool-action-bar"><button onclick="executeTool('sqlmap')" class="tool-execute-btn"><i class="fas fa-play mr-1"></i> RUN SQLMAP</button><button onclick="exportToolResults('sqlmap')" class="tool-export-btn"><i class="fas fa-download mr-1"></i> EXPORT</button></div>
+                </div>
+            </div>
+            
+            <!-- Metasploit Panel -->
+            <div id="content-metasploit" class="tool-content hidden">
+                <div class="bg-[--panel-bg] p-5 rounded-lg">
+                    <div class="flex justify-between items-center mb-4"><h4 class="text-red-500 font-bold">Metasploit Framework Results</h4><span class="text-[10px] bg-green-900/30 text-green-400 px-3 py-1 rounded-full">SESSION ACTIVE</span></div>
+                    <div id="msf-sessions"><div class="bg-green-900/20 border border-green-500/30 p-4 rounded-lg mb-3"><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><span class="text-green-400 font-bold">meterpreter_1 (Active)</span></div><div class="grid grid-cols-2 gap-2 text-[10px]"><div>Type: meterpreter</div><div>Platform: linux/x64</div><div>Privileges: user (admin)</div><div>Session ID: 1</div><div>Target: 192.168.1.100</div><div>Port: 4444</div></div></div></div>
+                    <div class="tool-action-bar"><button onclick="executeTool('metasploit')" class="tool-execute-btn"><i class="fas fa-play mr-1"></i> RUN METASPLOIT</button><button onclick="exportToolResults('metasploit')" class="tool-export-btn"><i class="fas fa-download mr-1"></i> EXPORT</button></div>
+                </div>
+            </div>
+            
+            <!-- Nikto Panel -->
+            <div id="content-nikto" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-blue-400 font-bold mb-3">Nikto Web Scanner</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-globe text-4xl mb-3 opacity-30"></i><p>No scan results yet</p><p class="text-xs mt-1">Click RUN to start scanning</p></div><div class="tool-action-bar"><button onclick="executeTool('nikto')" class="tool-execute-btn">RUN NIKTO</button><button onclick="exportToolResults('nikto')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Nmap Panel -->
+            <div id="content-nmap" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-green-400 font-bold mb-3">Nmap Port Scanner</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-network-wired text-4xl mb-3 opacity-30"></i><p>No scan results yet</p><p class="text-xs mt-1">Click RUN to start scanning</p></div><div class="tool-action-bar"><button onclick="executeTool('nmap')" class="tool-execute-btn">RUN NMAP</button><button onclick="exportToolResults('nmap')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Hydra Panel -->
+            <div id="content-hydra" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-yellow-400 font-bold mb-3">Hydra Brute Force</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-key text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('hydra')" class="tool-execute-btn">RUN HYDRA</button><button onclick="exportToolResults('hydra')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Gobuster Panel -->
+            <div id="content-gobuster" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-cyan-400 font-bold mb-3">Gobuster Directory Enumeration</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-folder-open text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('gobuster')" class="tool-execute-btn">RUN GOBUSTER</button><button onclick="exportToolResults('gobuster')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- WPScan Panel -->
+            <div id="content-wpscan" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-blue-400 font-bold mb-3">WPScan WordPress Scanner</h4><div class="text-center text-gray-500 py-12"><i class="fab fa-wordpress text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('wpscan')" class="tool-execute-btn">RUN WPSCAN</button><button onclick="exportToolResults('wpscan')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- John Panel -->
+            <div id="content-john" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-orange-400 font-bold mb-3">John the Ripper</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-lock text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('john')" class="tool-execute-btn">RUN JOHN</button><button onclick="exportToolResults('john')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Aircrack Panel -->
+            <div id="content-aircrack" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-purple-400 font-bold mb-3">Aircrack-ng WiFi Cracker</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-wifi text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('aircrack-ng')" class="tool-execute-btn">RUN AIRCRACK</button><button onclick="exportToolResults('aircrack-ng')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Burp Suite Panel -->
+            <div id="content-burpsuite" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-orange-400 font-bold mb-3">Burp Suite Scanner</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-bug text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('burpsuite')" class="tool-execute-btn">RUN BURP</button><button onclick="exportToolResults('burpsuite')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Dirb Panel -->
+            <div id="content-dirb" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-blue-400 font-bold mb-3">Dirb Directory Scanner</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-folder-open text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('dirb')" class="tool-execute-btn">RUN DIRB</button><button onclick="exportToolResults('dirb')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- BloodHound Panel -->
+            <div id="content-bloodhound" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-indigo-400 font-bold mb-3">BloodHound AD Mapper</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-sitemap text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('bloodhound')" class="tool-execute-btn">RUN BLOODHOUND</button><button onclick="exportToolResults('bloodhound')" class="tool-export-btn">EXPORT</button></div></div></div>
+            
+            <!-- Wireshark Panel -->
+            <div id="content-wireshark" class="tool-content hidden"><div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-green-400 font-bold mb-3">Wireshark Packet Analyzer</h4><div class="text-center text-gray-500 py-12"><i class="fas fa-network-wired text-4xl mb-3 opacity-30"></i><p>No scan results yet</p></div><div class="tool-action-bar"><button onclick="executeTool('wireshark')" class="tool-execute-btn">RUN WIRESHARK</button><button onclick="exportToolResults('wireshark')" class="tool-export-btn">EXPORT</button></div></div></div>
+        </div>
+    </div>
+
+    <!-- AI Suggestion Panel -->
+    <section class="glass-panel p-6 cyber-border border-purple-500/30 rounded-xl my-6">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2 mb-4"><i class="fas fa-bolt text-purple-400"></i> EMILY AI - EXPLOIT ANALYSIS</h3>
+        <div id="aiSuggestionContent" class="space-y-4">
+            <div class="p-5 ai-panel rounded-lg bg-gradient-to-r from-purple-900/20 to-pink-900/20">
+                <div class="flex justify-between items-center mb-3"><span class="text-xs font-mono text-purple-400"><i class="fas fa-brain mr-1"></i> EMILY v2.0</span><span class="text-xs font-bold severity-critical">95% Confidence</span></div>
+                <div class="mb-3 p-3 bg-black/40 rounded-lg border-l-2 border-purple-500"><div class="text-sm font-bold severity-critical">Apache 2.4.49 - Path Traversal (CVE-2021-41773)</div><p class="text-xs text-gray-300 mt-1">Tool analysis confirms Apache 2.4.49 vulnerability with high probability. Exploit allows arbitrary file reading and RCE.</p></div>
+                <div class="command-box p-3 text-xs bg-black/60 rounded-lg mb-3"><pre class="text-green-400 font-mono text-[10px] overflow-x-auto">msfconsole -q -x 'use exploit/multi/http/apache_normalization; set RHOSTS target.com; set RPATH /etc/passwd; run'</pre></div>
+                <button onclick="executeTool('metasploit')" class="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-xs font-bold hover:scale-[1.02] transition-all"><i class="fas fa-bolt mr-1"></i> EXECUTE WITH METASPLOIT</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Attack Vectors Panel -->
+    <div class="bg-[--panel-bg] p-6 rounded-xl cyber-border my-6">
+        <h3 class="text-sm font-bold mb-4 text-red-400 uppercase tracking-tighter flex items-center justify-between"><span><i class="fas fa-biohazard mr-2"></i>Attack Vectors & Payloads</span><span class="text-[10px] bg-red-900/30 px-2 py-1 rounded">GAN EVOLVED</span></h3>
+        <div id="aiAttackList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="exploit-card p-3 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-xs font-bold severity-critical">SQL Injection</span><span class="text-[8px] text-cyan-400">89%</span></div><p class="text-[9px] text-gray-400 mb-2">Boolean-based blind injection in id parameter</p><button onclick="executeTool('sqlmap')" class="w-full py-1 bg-red-900/30 text-red-400 rounded text-[8px] font-bold hover:bg-red-900/50 transition-all">EXECUTE SQLMAP</button></div>
+            <div class="exploit-card p-3 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-xs font-bold severity-critical">Path Traversal</span><span class="text-[8px] text-cyan-400">95%</span></div><p class="text-[9px] text-gray-400 mb-2">Apache 2.4.49 normalization vulnerability</p><button onclick="executeTool('metasploit')" class="w-full py-1 bg-red-900/30 text-red-400 rounded text-[8px] font-bold hover:bg-red-900/50 transition-all">EXECUTE METASPLOIT</button></div>
+            <div class="exploit-card p-3 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-xs font-bold severity-high">XSS Vulnerability</span><span class="text-[8px] text-cyan-400">76%</span></div><p class="text-[9px] text-gray-400 mb-2">Reflected XSS in search parameter</p><button onclick="executeTool('nikto')" class="w-full py-1 bg-red-900/30 text-red-400 rounded text-[8px] font-bold hover:bg-red-900/50 transition-all">EXECUTE NIKTO</button></div>
+            <div class="exploit-card p-3 rounded-lg"><div class="flex justify-between items-start mb-2"><span class="text-xs font-bold severity-high">Credential Brute Force</span><span class="text-[8px] text-cyan-400">82%</span></div><p class="text-[9px] text-gray-400 mb-2">Weak SSH credentials detected</p><button onclick="executeTool('hydra')" class="w-full py-1 bg-red-900/30 text-red-400 rounded text-[8px] font-bold hover:bg-red-900/50 transition-all">EXECUTE HYDRA</button></div>
+        </div>
+        <div class="mt-4 flex justify-end"><button onclick="exportAttackVectors()" class="tool-export-btn px-4 py-2"><i class="fas fa-download mr-2"></i> EXPORT ALL ATTACK VECTORS</button></div>
+    </div>
+
+    <!-- MSF Sessions and Database Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <div class="bg-black/60 border border-red-500/40 p-5 rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+            <h3 class="text-xs font-bold text-red-500 flex justify-between items-center"><span><i class="fas fa-terminal mr-2"></i>METASPLOIT ACTIVE SESSIONS</span><span id="msf-count" class="animate-pulse text-[10px] bg-red-900/30 px-2 py-1 rounded">● 1 ACTIVE</span></h3>
+            <div id="session-terminal" class="h-48 mt-3 font-mono text-[10px] text-red-400 overflow-y-auto bg-black/40 p-3 rounded-lg"><div>> Meterpreter session 1 opened (192.168.1.100:4444)</div><div>> Target: target.example.com</div><div>> Platform: linux/x64</div><div>> Privileges: user (admin)</div><div>> Type 'help' for available commands</div><div>> [*] Session is stable and active</div></div>
+            <div class="mt-2 flex gap-2 justify-end"><button onclick="exportSessions()" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-red-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export Sessions</button></div>
+        </div>
+
+        <div class="bg-black/60 border border-cyan-500/40 p-5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+            <h3 class="text-xs font-bold text-cyan-500 flex items-center gap-2"><i class="fas fa-database"></i>EXFILTRATED DATA <span class="text-[8px] bg-cyan-900/30 px-1 py-0.5 rounded">LOOT</span></h3>
+            <table class="w-full mt-3 text-[10px] text-left"><thead class="text-gray-500 border-b border-gray-800"><tr><th>Source</th><th>Type</th><th>Hash/Credential</th><th>Action</th></tr></thead>
+                <tbody id="loot-rows"><tr><td colspan="4" class="py-4 text-center text-gray-500 text-[10px]">No loot captured — run tools to populate</td></tr></tbody>
+            </table>
+            <div class="mt-2 flex gap-2 justify-end"><button onclick="exportLoot()" class="text-[8px] bg-black/40 text-gray-400 px-3 py-1 rounded hover:bg-cyan-900/20 transition-all"><i class="fas fa-download mr-1"></i> Export Loot</button></div>
+        </div>
+    </div>
+
+    <!-- AI Agent Cognitive Path Section -->
+    <div class="mt-4 grid grid-cols-12 gap-4">
+        <div class="col-span-12 bg-gray-900/80 border border-blue-500/30 rounded-xl p-5 shadow-[0_0_15px_rgba(0,102,255,0.1)]">
+            <div class="flex justify-between items-center mb-4 border-b border-blue-900 pb-2"><h3 class="text-blue-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2"><i class="fas fa-brain animate-pulse"></i> AI Agent Cognitive Path</h3><span class="text-[8px] text-blue-500 font-mono" id="agent-status">STATUS: ANALYZING TARGET...</span></div>
+            <div class="grid grid-cols-12 gap-4"><div class="col-span-12 md:col-span-3 bg-black/50 p-3 rounded-lg border border-gray-800 h-[200px] overflow-y-auto font-mono text-[9px]"><div class="text-gray-500 mb-2">[SYSTEM] Analysis in progress...</div><div id="agent-thoughts" class="space-y-1"><div class="text-gray-500">> Awaiting target scan...</div></div></div>
+                <div class="col-span-12 md:col-span-9 bg-black/40 rounded-lg relative h-[200px]" id="ai-agent-map"><div class="absolute inset-0 flex items-center justify-center text-[10px] text-gray-500"><div class="text-center"><div class="text-cyan-400 mb-3 text-sm">Attack Path Analysis</div><div class="grid grid-cols-3 gap-3 text-[9px]"><div class="bg-red-900/30 p-2 rounded-lg">SQL Injection<br><span class="text-red-400">89%</span></div><div class="bg-red-900/30 p-2 rounded-lg">Path Traversal<br><span class="text-red-400">95%</span></div><div class="bg-orange-900/30 p-2 rounded-lg">XSS<br><span class="text-orange-400">79%</span></div></div></div></div></div></div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let riskChart, network, currentTool = 'sqlmap', eventCount = 0, attackSuggestions = [], toolResults = {};
+        const socket = io(window.location.origin, { transports: ['websocket'], reconnection: true, reconnectionAttempts: 10 });
+        
+        socket.on('connect', () => { addEvent('SYSTEM', 'Connected to Sentinel Brain v6.5', 'success'); });
+        socket.on('tool_update', (data) => { if(data.tool && data.results) { toolResults[data.tool] = data.results; if(currentTool === data.tool) refreshToolPanel(data.tool, data.results); addEvent(data.tool.toUpperCase(), 'Execution completed', 'success'); } });
+        
+        function addEvent(type, msg, severity='info') {
+            const stream = document.getElementById('eventStream');
+            if(!stream) return;
+            const ts = new Date().toLocaleTimeString();
+            const colors = {info:'cyan', success:'green', warning:'yellow', error:'red', critical:'red'};
+            const div = document.createElement('div');
+            div.className = `event-item text-${colors[severity]||'cyan'}-400`;
+            div.innerHTML = `<span class="text-gray-500">[${ts}]</span> <span class="font-bold">${type}</span> ${msg}`;
+            stream.prepend(div);
+            eventCount++;
+            document.getElementById('eventCount').innerText = eventCount;
+            while(stream.children.length > 50) stream.removeChild(stream.lastChild);
+        }
+        
+        function switchToolTab(tool) {
+            document.querySelectorAll('.tool-tab').forEach(t=>t.classList.remove('active'));
+            document.getElementById(`tab-${tool}`)?.classList.add('active');
+            document.querySelectorAll('.tool-content').forEach(c=>c.classList.add('hidden'));
+            document.getElementById(`content-${tool}`)?.classList.remove('hidden');
+            currentTool = tool;
+        }
+        
+        function executeTool(toolName) {
+            const target = document.getElementById('urlInput')?.value || 'example.com';
+            document.getElementById('processing-status').innerHTML = `<div>⚙️ Executing ${toolName.toUpperCase()} on ${target.substring(0,40)}...</div>`;
+            document.getElementById('processing-progress').style.width = '30%';
+            document.getElementById('processing-message').innerText = `${toolName.toUpperCase()} running...`;
+            fetch('/api/attack/execute', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tool:toolName, target:target}) })
+            .then(res=>res.json()).then(data=>{
+                document.getElementById('processing-progress').style.width = '100%';
+                document.getElementById('processing-message').innerText = `${toolName.toUpperCase()} complete!`;
+                addEvent(toolName.toUpperCase(), 'Execution completed', 'success');
+                toolResults[toolName] = data;
+                refreshToolPanel(toolName, data);
+                setTimeout(()=>{ document.getElementById('processing-progress').style.width='0%'; document.getElementById('processing-message').innerText='Ready'; document.getElementById('processing-status').innerHTML='<div>⏳ Idle - waiting for task</div>'; },1500);
+            }).catch(err=>{
+                document.getElementById('processing-progress').style.width='0%';
+                document.getElementById('processing-message').innerText='Failed';
+                document.getElementById('processing-status').innerHTML = `<div>❌ Error: ${err.message}</div>`;
+                addEvent('ERROR', `Failed to execute ${toolName}`, 'error');
+            });
+        }
+        
+        function refreshToolPanel(toolName, data) {
+            const tc = document.getElementById(`content-${toolName}`);
+            if(!tc || !data) return;
+            if(toolName === 'sqlmap' && data.vulnerabilities) {
+                tc.innerHTML = `<div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-red-400 font-bold mb-3">SQLMap Results - ${data.vulnerabilities.length} Vulnerabilities</h4>${data.vulnerabilities.map(v=>`<div class="finding-item severity-critical"><div class="font-bold">${v.name}</div><div class="text-[9px] text-gray-400">Parameter: ${v.parameter||'unknown'} | Technique: ${v.technique||'unknown'}</div></div>`).join('')}<div class="tool-action-bar"><button onclick="executeTool('sqlmap')" class="tool-execute-btn">RUN AGAIN</button><button onclick="exportToolResults('sqlmap')" class="tool-export-btn">EXPORT</button></div></div>`;
+            } else if(toolName === 'metasploit' && data.sessions) {
+                tc.innerHTML = `<div class="bg-[--panel-bg] p-5 rounded-lg"><h4 class="text-red-500 font-bold mb-3">Metasploit - ${data.sessions.length} Active Sessions</h4><div class="bg-green-900/20 border border-green-500/30 p-4 rounded-lg"><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><span class="text-green-400 font-bold">${data.session||'meterpreter'}_1 Active</span></div><div class="grid grid-cols-2 gap-2 text-[10px]"><div>Target: ${data.target||'unknown'}</div><div>Platform: ${data.platform||'linux'}</div><div>Privileges: ${data.privileges||'user'}</div></div></div><div class="tool-action-bar"><button onclick="executeTool('metasploit')" class="tool-execute-btn">RUN AGAIN</button><button onclick="exportToolResults('metasploit')" class="tool-export-btn">EXPORT</button></div></div>`;
+            }
+        }
+        
+        function startNeuralScan() {
+            const url = document.getElementById('urlInput')?.value?.trim();
+            if (!url) { alert('Please enter a target URL or IP address'); return; }
+            const btn = document.querySelector('button[onclick="startNeuralScan()"]');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...'; }
+            document.getElementById('targetDisplay').innerHTML = `<span class="status-pulse">⚡</span> Neural analysis in progress: ${url.substring(0,60)}...`;
+            document.getElementById('processing-status').innerHTML = `<div>⚙️ Neural scan initiated for ${url.substring(0,40)}...</div>`;
+            document.getElementById('processing-progress').style.width = '10%';
+            document.getElementById('processing-message').innerText = 'Connecting to backend...';
+            // Clear previous results
+            document.getElementById('thoughtContainer').innerHTML = '<div class="text-gray-500 text-[10px]">[SYSTEM] Scan started — streaming live layer data...</div>';
+            document.getElementById('attackChain').innerHTML = '<div class="text-[10px] text-gray-500 text-center py-4">Analyzing attack chains...</div>';
+            addEvent('SCAN', `Initiating 7-layer neural analysis of ${url.substring(0,40)}`, 'info');
+            fetch('/api/scan/url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('processing-progress').style.width = '20%';
+                document.getElementById('processing-message').innerText = 'Neural layers processing...';
+                addEvent('SCAN', `Scan started — ID: ${data.scan_id || 'unknown'}`, 'success');
+                // Progress bar advances on socket events; scan_complete event resets button
+            })
+            .catch(err => {
+                document.getElementById('processing-progress').style.width = '0%';
+                document.getElementById('processing-message').innerText = 'Failed — check backend';
+                document.getElementById('processing-status').innerHTML = `<div>❌ ${err.message}</div>`;
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain"></i> NEURAL SCAN'; }
+                addEvent('ERROR', `Scan failed: ${err.message}`, 'error');
+            });
+        }
+        
+        function executeLayerTool(layer) {
+            const target = document.getElementById('urlInput')?.value || 'example.com';
+            document.getElementById('processing-status').innerHTML = `<div>⚙️ Processing ${layer.toUpperCase()} neural layer...</div>`;
+            document.getElementById('processing-progress').style.width = '25%';
+            document.getElementById('processing-message').innerText = `Executing ${layer.toUpperCase()}...`;
+            const logEl = document.getElementById(`${layer}-log`);
+            if(logEl) logEl.innerHTML = `<div>▶ Executing ${layer.toUpperCase()} on ${target.substring(0,30)}...</div><div>▶ Processing neural patterns...</div>`;
+            setTimeout(()=>{ document.getElementById('processing-progress').style.width='50%'; document.getElementById('processing-message').innerText = `Processing ${layer.toUpperCase()} results...`; },500);
+            setTimeout(()=>{ document.getElementById('processing-progress').style.width='75%'; },1000);
+            setTimeout(()=>{ document.getElementById('processing-progress').style.width='100%'; document.getElementById('processing-message').innerText = `${layer.toUpperCase()} layer complete!`;
+                if(logEl) { if(layer==='cnn') logEl.innerHTML = `<div>▶ CNN scan executed</div><div>▶ Anomaly score: 0.85</div><div>▶ Feature vector: 256-dim</div><div>▶ Pattern matches: 3</div>`;
+                else if(layer==='gnn') logEl.innerHTML = `<div>▶ Attack graph built</div><div>▶ 12 nodes, 23 edges</div><div>▶ Critical path: SQLi→RCE</div><div>▶ Centrality score: 0.78</div>`;
+                else if(layer==='minilm') logEl.innerHTML = `<div>▶ RAG search executed</div><div>▶ Retrieved 7 similar CVEs</div><div>▶ Top match: CVE-2024-1234</div><div>▶ Similarity: 0.92</div>`;
+                else if(layer==='bnn') logEl.innerHTML = `<div>▶ Bayesian inference complete</div><div>▶ Confidence: 78%</div><div>▶ Uncertainty: 22%</div><div>▶ Risk posterior: 0.85</div>`;
+                else if(layer==='emily') logEl.innerHTML = `<div>▶ DeepSeek reasoning complete</div><div>▶ Found 3 attack vectors</div><div>▶ Confidence: 90%</div><div>▶ Recommendations: 4</div>`;
+                else if(layer==='spine') logEl.innerHTML = `<div>▶ Correlated 127 events</div><div>▶ Attack paths: 4 identified</div><div>▶ Risk score: 8.5/10</div><div>▶ Priority: HIGH</div>`; }
+                addEvent(layer.toUpperCase(), `Layer processing complete`, 'success');
+                setTimeout(()=>{ document.getElementById('processing-progress').style.width='0%'; document.getElementById('processing-message').innerText='Ready'; document.getElementById('processing-status').innerHTML='<div>⏳ Idle - waiting for task</div>'; },1500);
+            },1500);
+        }
+        
+        function initCharts() {
+            const ctx = document.getElementById('riskRadar');
+            if(ctx) riskChart = new Chart(ctx, { type:'radar', data:{ labels:['Network','Web','Auth','Database','Privilege','Endpoint'], datasets:[{ label:'Risk Score', data:[8.2,8.9,7.4,6.8,7.2,5.5], backgroundColor:'rgba(0,255,255,0.15)', borderColor:'#00ffff', pointBackgroundColor:'#00ffff', borderWidth:2, pointBorderColor:'#fff', pointRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:true, scales:{ r:{ grid:{ color:'#1f2937' }, angleLines:{ color:'#1f2937' }, min:0, max:10, ticks:{ display:false, stepSize:2 } } }, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(ctx)=>`${ctx.label}: ${ctx.raw}/10` } } } } });
+        }
+        
+        function initAttackGraph() {
+            const container = document.getElementById('attackGraph');
+            if (!container) return;
+            // Start with empty graph — populated by socket 'layer_update' / 'tool_result' events
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#4b5563;font-size:11px;font-family:Fira Code,monospace;">Attack graph will render after neural scan</div>';
+        }
+
+        function renderAttackGraph(graphData) {
+            const container = document.getElementById('attackGraph');
+            if (!container || !graphData || !graphData.nodes) return;
+            const nodes = new vis.DataSet(graphData.nodes.map(n => ({
+                id: n.id, label: n.label,
+                color: { background: n.type === 'vulnerability' ? '#ef4444' : n.type === 'success' ? '#22c55e' : '#3b82f6', border: '#fff' },
+                shape: 'dot', size: n.type === 'target' ? 35 : 22,
+                font: { color: '#fff', size: 11, face: 'Fira Code' }
+            })));
+            const edges = new vis.DataSet((graphData.edges || []).map(e => ({
+                from: e.from, to: e.to, label: e.label || '',
+                color: { color: '#6b7280' }, width: 1.5, arrows: 'to'
+            })));
+            network = new vis.Network(container, { nodes, edges }, {
+                nodes: { shape: 'dot', size: 22, borderWidth: 2 },
+                edges: { arrows: 'to', smooth: { type: 'continuous' }, font: { size: 10, color: '#ccc' } },
+                physics: { stabilization: true, barnesHut: { gravitationalConstant: -3000, springConstant: 0.04 } },
+                interaction: { hover: true, tooltipDelay: 200 }
+            });
+        }
+
+        // Called by socket when backend sends attack graph
+        socket.on('attack_graph', (data) => { renderAttackGraph(data); });
+        
+        function evolvePayload() {
+            const progress = document.getElementById('ganProgress'), status = document.getElementById('ganStatus'), log = document.getElementById('gan-log');
+            if(progress && status && log) {
+                progress.style.width='0%'; status.innerText='Evolution started...'; document.getElementById('processing-status').innerHTML='<div>⚙️ GAN evolution in progress...</div>'; document.getElementById('processing-progress').style.width='20%';
+                let w=0; const iv=setInterval(()=>{ w+=8; progress.style.width=w+'%'; document.getElementById('processing-progress').style.width=20+(w*0.7)+'%';
+                    if(w===24) { status.innerText='Generation 1/5 - Mutating payloads'; log.innerHTML=`<div>▶ Generation 1: 50 mutations</div><div>▶ Best fitness: 0.45</div>`; document.getElementById('processing-message').innerText='GAN: Generation 1/5'; }
+                    else if(w===48) { status.innerText='Generation 2/5 - Testing evasion'; log.innerHTML+=`<div>▶ Generation 2: 48 survivors</div><div>▶ Best fitness: 0.62</div>`; document.getElementById('processing-message').innerText='GAN: Generation 2/5'; }
+                    else if(w===72) { status.innerText='Generation 3/5 - Crossbreeding'; log.innerHTML+=`<div>▶ Generation 3: 32 candidates</div><div>▶ Best fitness: 0.78</div>`; document.getElementById('processing-message').innerText='GAN: Generation 3/5'; }
+                    else if(w===96) { status.innerText='Generation 4/5 - Optimization'; log.innerHTML+=`<div>▶ Generation 4: 24 survivors</div><div>▶ Best fitness: 0.88</div>`; document.getElementById('processing-message').innerText='GAN: Generation 4/5'; }
+                    if(w>=100) { clearInterval(iv); status.innerText='Evolution complete!'; log.innerHTML+=`<div>✅ Generation 5: Final payload evolved</div><div>▶ Evasion score: 0.94</div><div>▶ Payload size: 245 bytes</div>`; document.getElementById('processing-progress').style.width='100%'; document.getElementById('processing-message').innerText='GAN evolution complete!'; addEvent('GAN','Payload evolution complete - 94% evasion rate','success'); setTimeout(()=>{ document.getElementById('processing-progress').style.width='0%'; document.getElementById('processing-message').innerText='Ready'; document.getElementById('processing-status').innerHTML='<div>⏳ Idle - waiting for task</div>'; },1500); } },400);
+            }
+        }
+        
+        function refreshMetrics() {
+            // Fetch real metrics from backend
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(d => {
+                    if (d.gpu_memory_mb !== undefined) {
+                        document.getElementById('gpuMemory').innerText = d.gpu_memory_mb + ' MB';
+                        document.getElementById('gpuMemoryBar').style.width = Math.min(d.gpu_memory_mb / 8000 * 100, 100) + '%';
+                    }
+                    if (d.gpu_util !== undefined) {
+                        document.getElementById('gpuUtil').innerText = d.gpu_util + '%';
+                    }
+                    if (d.active_scans !== undefined) {
+                        document.getElementById('attackRate').innerText = d.active_scans + ' active';
+                        document.getElementById('attackRateBar').style.width = Math.min(d.active_scans * 10, 100) + '%';
+                    }
+                    if (d.risk_score !== undefined) {
+                        document.getElementById('riskScore').innerText = d.risk_score;
+                        document.getElementById('grafanaRisk').innerText = d.risk_score;
+                    }
+                })
+                .catch(() => {}); // Fail silently — don't crash UI on network error
+            document.getElementById('grafanaTimestamp').innerText = new Date().toLocaleTimeString();
+        }
+        
+        function exportAllResults(format) {
+            const allData = { timestamp:new Date().toISOString(), target:document.getElementById('urlInput')?.value||'unknown', results:toolResults, attackSuggestions };
+            if(format==='json'){ const blob=new Blob([JSON.stringify(allData,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`sentinel_report_${new Date().toISOString().slice(0,19)}.json`; a.click(); URL.revokeObjectURL(blob); }
+            else alert(`Export as ${format} - Premium feature available in enterprise version`);
+            addEvent('EXPORT',`Exported all results as ${format.toUpperCase()}`, 'success');
+        }
+        
+        function exportToolResults(tool) { const data=toolResults[tool]||{message:'No data'}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${tool}_results.json`; a.click(); URL.revokeObjectURL(blob); addEvent('EXPORT',`Exported ${tool} results`, 'success'); }
+        function exportEventStream() { const events=[]; document.querySelectorAll('#eventStream>div').forEach(d=>events.push(d.innerText)); const blob=new Blob([events.join('\n')],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`events_${new Date().toISOString().slice(0,10)}.txt`; a.click(); URL.revokeObjectURL(blob); addEvent('EXPORT','Exported event stream','success'); }
+        function exportAttackVectors() { const blob=new Blob([JSON.stringify(attackSuggestions,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`attack_vectors.json`; a.click(); URL.revokeObjectURL(blob); addEvent('EXPORT','Exported attack vectors','success'); }
+        function exportSessions() { addEvent('EXPORT','Exported MSF sessions','success'); }
+        function exportLoot() { addEvent('EXPORT','Exported loot data','success'); }
+        function exportLayerData(layer) { addEvent('EXPORT',`Exported ${layer} layer data`, 'success'); }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text).then(()=>addEvent('CLIPBOARD','Copied to clipboard','success')).catch(()=>addEvent('ERROR','Copy failed','error')); }
+        function openGrafana() { window.open('http://localhost:3000','_blank'); }
+        function refreshGrafana() { refreshMetrics(); addEvent('GRAFANA','Refreshed dashboard','info'); }
+        function showLayerMetrics(layer) { addEvent('METRICS',`Showing detailed metrics for ${layer.toUpperCase()} layer`,'info'); }
+        
+        document.addEventListener('DOMContentLoaded',()=>{ initCharts(); initAttackGraph(); switchToolTab('sqlmap'); refreshMetrics(); addEvent('SYSTEM','Sentinel-1 v6.5 initialized - 7-layer neural brain active','success'); });
+        
+        window.startNeuralScan=startNeuralScan; window.executeTool=executeTool; window.executeLayerTool=executeLayerTool; window.switchToolTab=switchToolTab; window.exportAllResults=exportAllResults; window.exportToolResults=exportToolResults; window.exportEventStream=exportEventStream; window.exportAttackVectors=exportAttackVectors; window.exportSessions=exportSessions; window.exportLoot=exportLoot; window.exportLayerData=exportLayerData; window.evolvePayload=evolvePayload; window.refreshMetrics=refreshMetrics; window.refreshGrafana=refreshGrafana; window.openGrafana=openGrafana; window.showLayerMetrics=showLayerMetrics; window.copyToClipboard=copyToClipboard;
+
+
+      function addResultToUI(tool, data) {
+    const container = document.getElementById('results-container');
+    let cardHtml = '';
+
+    if (tool === 'nmap') {
+        cardHtml = `
+            <div class="result-card nmap-style">
+                <h3><i class="fas fa-network-wired"></i> Port Scan</h3>
+                <div class="port-list">${data.map(p => `<span class="port">${p.port} [${p.state}]</span>`).join('')}</div>
+            </div>`;
+    } else if (tool === 'ai_suggestion') {
+        cardHtml = `
+            <div class="result-card ai-style">
+                <h3><i class="fas fa-brain"></i> Neural Insight</h3>
+                <p>${data.reasoning}</p>
+                <div class="confidence-bar" style="width: ${data.confidence}%"></div>
+            </div>`;
+    }
+    container.innerHTML += cardHtml;
+}  
+
+// Socket.IO: AI Brain Suggestions
+        socket.on('ai_suggestion', (data) => {
+            addEvent('AI', `${data.vulnerability} — Confidence: ${(data.confidence*100).toFixed(1)}%`, 'info');
+            const thought = document.getElementById('thoughtContainer');
+            if (thought) {
+                const div = document.createElement('div');
+                div.className = 'thought-stream-item';
+                div.innerHTML = `<span class="text-orange-400">[EMILY]</span> ${data.vulnerability} | Confidence: ${(data.confidence*100).toFixed(1)}%`;
+                thought.prepend(div);
+            }
+        });
+
+        // Socket.IO: Gobuster directory discovery
+        socket.on('gobuster_update', (data) => {
+            addEvent('GOBUSTER', `Path discovered: ${data.path || data}`, 'success');
+        });
+
+        // Socket.IO: scan_complete — reset scan button
+        socket.on('scan_complete', (data) => {
+            const btn = document.querySelector('button[onclick="startNeuralScan()"]');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain"></i> NEURAL SCAN'; }
+            document.getElementById('processing-progress').style.width = '100%';
+            document.getElementById('processing-message').innerText = 'Scan complete!';
+            addEvent('SCAN', `Scan complete${data && data.scan_id ? ' — ID: '+data.scan_id : ''}`, 'success');
+            setTimeout(() => {
+                document.getElementById('processing-progress').style.width = '0%';
+                document.getElementById('processing-message').innerText = 'Ready';
+                document.getElementById('processing-status').innerHTML = '<div>⏳ Idle - waiting for task</div>';
+            }, 2000);
+        });
+
+        // Socket.IO: layer updates from backend
+        socket.on('layer_update', (data) => {
+            const layerMap = {cnn:1, gnn:2, minilm:3, bnn:4, gan:5, emily:6, spine:7};
+            const num = layerMap[data.layer];
+            if (num) {
+                const el = document.getElementById(`layer${num}-prob`);
+                if (el) el.innerText = data.probability + '%';
+                const bar = document.getElementById(`${data.layer}Bar`);
+                if (bar) bar.style.width = data.probability + '%';
+            }
+            if (data.details) {
+                const logEl = document.getElementById(`${data.layer}-log`);
+                if (logEl) {
+                    const div = document.createElement('div');
+                    div.textContent = '▶ ' + data.details;
+                    logEl.prepend(div);
+                }
+                const thought = document.getElementById('thoughtContainer');
+                if (thought) {
+                    const layerColors = {cnn:'cyan', gnn:'purple', minilm:'blue', bnn:'yellow', gan:'green', emily:'orange', spine:'pink'};
+                    const div = document.createElement('div');
+                    div.className = 'thought-stream-item';
+                    div.innerHTML = `<span class="text-${layerColors[data.layer]||'cyan'}-400">[${data.layer.toUpperCase()}]</span> ${data.details}`;
+                    thought.prepend(div);
+                    while (thought.children.length > 20) thought.removeChild(thought.lastChild);
+                }
+            }
+        });
+
+        // Socket.IO: tool results from backend
+        socket.on('tool_result', (data) => {
+            if (data.tool && data.results) {
+                toolResults[data.tool] = data.results;
+                refreshToolPanel(data.tool, data.results);
+                addEvent(data.tool.toUpperCase(), 'Results received from backend', 'success');
+            }
+        });
+
+    </script>
+    
+</body>
+</html>

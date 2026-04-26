@@ -1,0 +1,13 @@
+{
+  "user_id": "student123",
+  "start_time": "2026-02-28T22:25:24.023965",
+  "concepts_viewed": [
+    {
+      "topic": "linear_algebra",
+      "concept": "vectors",
+      "timestamp": "2026-02-28T22:25:24.025255"
+    }
+  ],
+  "problems_solved": [],
+  "performance": {}
+}

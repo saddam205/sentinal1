@@ -1,0 +1,31 @@
+#!/bin/bash
+
+echo "======================================"
+echo "🚀 SENTINEL-1 TRAINING STARTED"
+echo "======================================"
+
+# Activate venv
+source venv_hacking/bin/activate
+
+# Create folders if not exist
+mkdir -p models logs
+
+# Step 1: Train EMBER (Bayesian)
+echo "📊 Training EMBER..."
+python train_ember.py
+
+# Step 2: Train CICIDS (CNN + GNN)
+echo "📊 Training CICIDS2017..."
+python train_cicids2017.py
+
+# Step 3: Train SOREL (optional)
+echo "📊 Training SOREL..."
+python train_sorel.py
+
+# Step 4: Run Full Pipeline (safe mode)
+echo "🔥 Running Full Pipeline..."
+python train_pipeline.py
+
+echo "======================================"
+echo "✅ TRAINING COMPLETE"
+echo "======================================"

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Grafana Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #02040a;
+            color: #c9d1d9;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .grafana-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #111217;
+        }
+        .grafana-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #111217;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #02040a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #00ffff33;
+            border-top-color: #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-cyan-400">Loading Grafana Dashboard...</p>
+            <p class="text-xs text-gray-500 mt-2">If this takes too long, check if Grafana is running</p>
+        </div>
+    </div>
+
+    <div class="grafana-container">
+        <iframe 
+            id="grafanaFrame"
+            class="grafana-frame"
+            src="/grafana-proxy/"
+            allow="fullscreen"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+            onload="document.getElementById('loading').style.opacity='0'; setTimeout(() => document.getElementById('loading').style.display='none', 500)"
+        ></iframe>
+    </div>
+
+    <script>
+        // Handle iframe errors
+        window.addEventListener('error', function(e) {
+            console.error('Frame error:', e);
+        });
+        
+        // Check if frame loaded
+        setTimeout(function() {
+            const loading = document.getElementById('loading');
+            if (loading.style.display !== 'none') {
+                loading.innerHTML = `
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i>
+                        <p class="text-yellow-400">Grafana is taking too long to respond</p>
+                        <p class="text-xs text-gray-500 mt-2">Make sure Grafana is running on port 3000</p>
+                        <button onclick="window.location.reload()" 
+                                class="mt-4 px-6 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-500">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

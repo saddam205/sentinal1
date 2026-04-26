@@ -1,0 +1,84 @@
+# ============================================================
+# SENTINEL-1 CyberSec Lab v6.5 — requirements.txt
+# ============================================================
+# Install core deps:       pip install -r requirements.txt
+# Install optional extras: pip install -r requirements.txt --extra-index-url ...
+# GPU (CUDA 12.x):         pip install torch --index-url https://download.pytorch.org/whl/cu121
+# ============================================================
+
+# ----- Web framework ----------------------------------------
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0          # includes websockets, httptools
+python-socketio>=5.11.0
+starlette>=0.37.0
+python-multipart>=0.0.9            # required for fastapi Form / file uploads
+
+# ----- Auth & security --------------------------------------
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.0,<5.1.0               # 5.1+ has breaking passlib compatibility changes
+python-jose[cryptography]>=3.3.0
+
+# ----- Database ---------------------------------------------
+SQLAlchemy>=2.0.0
+alembic>=1.13.0                    # migrations (optional but recommended)
+
+# ----- Data validation --------------------------------------
+pydantic[email]>=2.0.0
+
+# ----- HTTP clients -----------------------------------------
+httpx>=0.27.0
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# ----- Machine learning — core ------------------------------
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+joblib>=1.3.0
+lightgbm>=4.3.0
+
+# ----- Deep learning ----------------------------------------
+# CPU-only by default. For GPU see note at top of file.
+torch>=2.2.0
+torchvision>=0.17.0                # needed by some CNN pipelines
+
+# ----- NLP / embeddings -------------------------------------
+sentence-transformers>=2.7.0
+transformers>=4.40.0
+
+# ----- Vector search ----------------------------------------
+# faiss-gpu instead of faiss-cpu if running on CUDA
+faiss-cpu>=1.8.0
+
+# ----- Monitoring -------------------------------------------
+prometheus-client>=0.20.0
+prometheus-fastapi-instrumentator>=6.1.0
+
+# ----- Task queue -------------------------------------------
+celery[redis]>=5.3.0
+redis>=5.0.0
+
+# ----- Visualisation ----------------------------------------
+matplotlib>=3.8.0
+
+# ============================================================
+# OPTIONAL — install only what you need
+# ============================================================
+
+# Graph neural networks (heavy — requires separate torch-geometric install)
+# See: https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
+# torch-geometric>=2.5.0
+# torch-scatter torch-sparse torch-cluster torch-spline-conv  (matching CUDA version)
+
+# LLM fine-tuning with LoRA
+# peft>=0.10.0
+# bitsandbytes>=0.43.0              # 8-bit quantisation, Linux/CUDA only
+
+# Metasploit RPC integration
+# pymetasploit3>=1.0.3              # requires a running msfrpcd daemon
+openpyxl==3.1.5
+# EMBER malware feature extraction
+# Install from source: https://github.com/endgameinc/ember
+# ember                             # not on PyPI — clone and pip install -e .
+pydantic[email]
+# SOREL dataset training extras (already covered by sentence-transformers + lightgbm above)

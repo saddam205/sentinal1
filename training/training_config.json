@@ -1,0 +1,29 @@
+{
+    "datasets": {
+        "cicids2017": {
+            "path": "./data/cicids2017",
+            "layers": ["cnn", "gnn"]
+        },
+        "ember": {
+            "path": "./data/ember/ember2018",
+            "layers": ["minilm", "bayesian"]
+        },
+        "sorel": {
+            "path": "./data/sorel",
+            "layers": ["minilm", "deepseek"]
+        }
+    },
+    "model_paths": {
+        "cnn": "./models/layer2_cnn.pth",
+        "gnn": "./models/layer3_gnn.pth",
+        "minilm": "./models/layer3_minilm",
+        "bayesian": "./models/layer4_bayesian.pkl",
+        "deepseek": "./models/layer5_deepseek",
+        "faiss": "./models/faiss.index"
+    },
+    "training": {
+        "batch_size": 32,
+        "epochs": 5,
+        "learning_rate": 0.001
+    }
+}

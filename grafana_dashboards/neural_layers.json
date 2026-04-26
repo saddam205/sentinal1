@@ -1,0 +1,59 @@
+{
+  "system_name": "SENTINEL-1 v6.5",
+  "layers": [
+    {
+      "id": 1,
+      "name": "CNN Pattern Scanner",
+      "metric_id": "layer_status{layer='1'}",
+      "function": "Visual Perception & Pattern Recognition",
+      "hardware": "CUDA/GPU"
+    },
+    {
+      "id": 2,
+      "name": "GNN Strategist",
+      "metric_id": "layer_status{layer='2'}",
+      "function": "Attack Path Planning & Relationship Mapping",
+      "hardware": "CPU/RAM"
+    },
+    {
+      "id": 3,
+      "name": "MiniLM Librarian",
+      "metric_id": "layer_status{layer='3'}",
+      "function": "RAG Knowledge Retrieval",
+      "hardware": "CUDA/GPU"
+    },
+    {
+      "id": 4,
+      "name": "BNN Arbiter",
+      "metric_id": "layer_status{layer='4'}",
+      "function": "Bayesian Decision Gatekeeping",
+      "hardware": "CPU/RAM"
+    },
+    {
+      "id": 5,
+      "name": "GAN Evolver",
+      "metric_id": "layer_status{layer='5'}",
+      "function": "Payload Mutation & Obfuscation",
+      "hardware": "CUDA/GPU"
+    },
+    {
+      "id": 6,
+      "name": "Emily AI Hacker",
+      "metric_id": "layer_status{layer='6'}",
+      "function": "DeepSeek-Coder Reasoning",
+      "hardware": "CUDA/GPU (8-bit)"
+    },
+    {
+      "id": 7,
+      "name": "Correlation Spine",
+      "metric_id": "layer_status{layer='7'}",
+      "function": "Motor System & Execution Control",
+      "hardware": "System"
+    }
+  ],
+  "thresholds": {
+    "vram_critical": 0.90,
+    "confidence_min": 0.80,
+    "latency_max_ms": 500
+  }
+}

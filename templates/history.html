@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Scan & Attack History</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --cyan:#00ffff;--purple:#9945FF;--green:#00ff9d;--red:#ff3131;
+            --orange:#ff8800;--yellow:#ffd700;--pink:#ff66cc;
+            --bg:#02040a;--panel:rgba(13,17,23,.97);--border:rgba(0,255,255,.15);
+            --text:#c9d1d9;--text2:#6b7280;--text3:#374151;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+            background:
+                radial-gradient(ellipse 70% 50% at 10% 20%,rgba(0,255,255,.03),transparent 55%),
+                radial-gradient(ellipse 50% 50% at 90% 80%,rgba(153,69,255,.025),transparent 55%),
+                repeating-linear-gradient(45deg,rgba(0,255,255,.007) 0,rgba(0,255,255,.007) 1px,transparent 1px,transparent 10px);}
+
+        ::-webkit-scrollbar{width:5px;height:5px;}
+        ::-webkit-scrollbar-track{background:rgba(0,0,0,.2);}
+        ::-webkit-scrollbar-thumb{background:rgba(0,255,255,.2);border-radius:3px;}
+
+        /* Header */
+        header{position:sticky;top:0;z-index:100;background:rgba(2,4,10,.98);backdrop-filter:blur(20px);
+            border-bottom:1px solid var(--border);padding:.7rem 1.5rem;
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;}
+        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+        .logo-icon{width:34px;height:34px;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+            display:flex;align-items:center;justify-content:center;font-size:15px;color:#000;
+            box-shadow:0 0 18px rgba(0,255,255,.3);}
+        .logo-name{font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:900;
+            background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;}
+        nav{display:flex;gap:.15rem;align-items:center;flex-wrap:wrap;}
+        .nav-a{color:var(--text2);text-decoration:none;font-size:.78rem;font-weight:500;
+            display:flex;align-items:center;gap:5px;padding:.32rem .65rem;border-radius:6px;transition:all .2s;}
+        .nav-a:hover,.nav-a.active{color:var(--cyan);}
+        .nav-a.active{background:rgba(0,255,255,.08);}
+        .btn-sm{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);
+            padding:.32rem .85rem;border-radius:6px;font-size:.73rem;text-decoration:none;transition:all .2s;}
+        .btn-sm:hover{background:rgba(0,255,255,.07);color:var(--cyan);}
+
+        /* Main */
+        main{max-width:1240px;margin:0 auto;padding:1.35rem 1.5rem;position:relative;z-index:1;}
+
+        /* Page header */
+        .page-hd{display:flex;justify-content:space-between;align-items:flex-start;
+            flex-wrap:wrap;gap:1rem;margin-bottom:1.35rem;}
+        .page-hd h1{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:700;letter-spacing:.5px;}
+        .page-hd h1 span{background:linear-gradient(135deg,var(--cyan),var(--purple));
+            -webkit-background-clip:text;background-clip:text;color:transparent;}
+        .page-hd p{font-size:.75rem;color:var(--text2);margin-top:.25rem;}
+        .hd-actions{display:flex;gap:.55rem;align-items:center;}
+        .export-btn{background:rgba(0,255,157,.07);border:1px solid rgba(0,255,157,.22);
+            color:var(--green);padding:.45rem 1.1rem;border-radius:8px;font-size:.78rem;
+            font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;}
+        .export-btn:hover{background:rgba(0,255,157,.14);transform:translateY(-1px);}
+        .clear-history-btn{background:rgba(255,49,49,.07);border:1px solid rgba(255,49,49,.22);
+            color:#f87171;padding:.45rem 1.1rem;border-radius:8px;font-size:.78rem;
+            font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;}
+        .clear-history-btn:hover{background:rgba(255,49,49,.14);}
+
+        /* Summary cards */
+        .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.85rem;margin-bottom:1.25rem;}
+        .sum-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:.9rem 1rem;display:flex;align-items:center;gap:.7rem;transition:all .2s;position:relative;overflow:hidden;}
+        .sum-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+        .sum-card:hover{border-color:rgba(0,255,255,.28);transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.35);}
+        .sum-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
+        .sum-val{font-family:'Orbitron',sans-serif;font-size:1.45rem;font-weight:700;}
+        .sum-lbl{font-size:.67rem;color:var(--text2);text-transform:uppercase;letter-spacing:.9px;margin-top:.1rem;}
+        .sc-cyan .sum-val{color:var(--cyan);} .sc-cyan::after{background:var(--cyan);}
+        .sc-red .sum-val{color:var(--red);} .sc-red::after{background:var(--red);}
+        .sc-green .sum-val{color:var(--green);} .sc-green::after{background:var(--green);}
+        .sc-orange .sum-val{color:var(--orange);} .sc-orange::after{background:var(--orange);}
+        .sc-purple .sum-val{color:var(--purple);} .sc-purple::after{background:var(--purple);}
+
+        /* Filters */
+        .filters-bar{
+            background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:.85rem 1.1rem;margin-bottom:1.1rem;
+            display:flex;flex-wrap:wrap;align-items:center;gap:.65rem;
+        }
+        .filter-label{font-size:.68rem;color:var(--text2);font-weight:700;letter-spacing:.9px;text-transform:uppercase;white-space:nowrap;}
+        .filter-select,.filter-input{
+            background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;
+            color:var(--text);font-size:.78rem;padding:.38rem .65rem;outline:none;
+            font-family:'Inter',sans-serif;min-width:125px;transition:border-color .2s,box-shadow .2s;
+        }
+        .filter-select:focus,.filter-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.07);}
+        .filter-input{min-width:155px;}
+        .clear-btn{background:rgba(255,49,49,.07);border:1px solid rgba(255,49,49,.22);
+            color:#f87171;padding:.38rem .8rem;border-radius:6px;font-size:.73rem;cursor:pointer;
+            display:flex;align-items:center;gap:4px;transition:all .2s;margin-left:auto;}
+        .clear-btn:hover{background:rgba(255,49,49,.14);}
+
+        /* Tabs */
+        .tabs{display:flex;gap:.45rem;margin-bottom:1.1rem;flex-wrap:wrap;}
+        .tab{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;
+            padding:.42rem .95rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;
+            display:flex;align-items:center;gap:5px;color:var(--text2);}
+        .tab:hover{border-color:rgba(0,255,255,.28);color:var(--text);}
+        .tab.active{background:rgba(0,255,255,.09);border-color:rgba(0,255,255,.38);color:var(--cyan);}
+        .tab-count{background:rgba(255,255,255,.07);border-radius:4px;padding:.08rem .38rem;font-size:.68rem;font-family:'Fira Code',monospace;}
+        .tab.active .tab-count{background:rgba(0,255,255,.14);}
+
+        /* History list */
+        .history-list{display:flex;flex-direction:column;gap:.55rem;}
+        .history-item{
+            background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            overflow:hidden;transition:border-color .2s,box-shadow .2s;
+        }
+        .history-item:hover{border-color:rgba(0,255,255,.28);box-shadow:0 4px 20px rgba(0,0,0,.3);}
+        .history-item.scan-item{border-left:3px solid var(--cyan);}
+        .history-item.attack-item{border-left:3px solid var(--red);}
+        .history-item.expanded .history-details{display:block;}
+        .history-item.expanded .expand-icon{transform:rotate(180deg);}
+        .history-item.expanded{border-color:rgba(0,255,255,.25);}
+
+        .history-header{
+            padding:.8rem 1.1rem;cursor:pointer;
+            display:flex;justify-content:space-between;align-items:center;gap:.75rem;
+            transition:background .15s;
+        }
+        .history-header:hover{background:rgba(255,255,255,.015);}
+        .history-main{display:flex;align-items:center;gap:.7rem;flex:1;min-width:0;}
+        .h-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;}
+        .h-info{flex:1;min-width:0;}
+        .h-target{font-size:.88rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .h-meta{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.18rem;}
+        .h-meta span{font-size:.68rem;color:var(--text2);display:flex;align-items:center;gap:3px;}
+        .h-meta i{font-size:.6rem;}
+        .h-right{display:flex;align-items:center;gap:.65rem;flex-shrink:0;}
+        .expand-icon{color:var(--text2);font-size:.7rem;transition:transform .2s;}
+        .status-badge{font-size:.63rem;font-weight:700;padding:.17rem .5rem;border-radius:4px;text-transform:uppercase;letter-spacing:.6px;}
+        .st-success{background:rgba(0,255,157,.1);color:var(--green);border:1px solid rgba(0,255,157,.22);}
+        .st-failed{background:rgba(255,49,49,.1);color:var(--red);border:1px solid rgba(255,49,49,.22);}
+        .st-pending{background:rgba(255,215,0,.1);color:var(--yellow);border:1px solid rgba(255,215,0,.22);}
+        .st-completed{background:rgba(0,255,157,.1);color:var(--green);border:1px solid rgba(0,255,157,.22);}
+
+        /* Details */
+        .history-details{display:none;padding:.1rem 1.1rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
+        .details-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.65rem;padding-top:.8rem;}
+        .detail-item{background:rgba(0,0,0,.3);border-radius:7px;padding:.6rem .8rem;}
+        .detail-lbl{font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.28rem;}
+        .detail-val{font-size:.78rem;font-family:'Fira Code',monospace;color:#e2e8f0;word-break:break-all;}
+        .vuln-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem;}
+        .vuln-tag{font-size:.68rem;padding:.18rem .5rem;border-radius:4px;border:1px solid;font-weight:600;}
+        .vc{border-color:#ff3131;color:#ff3131;background:rgba(255,49,49,.07);}
+        .vh{border-color:#ff8800;color:#ff8800;background:rgba(255,136,0,.07);}
+        .vm{border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,.07);}
+        .vl{border-color:#00ff9d;color:#00ff9d;background:rgba(0,255,157,.07);}
+        .cmd-box{background:#000;border-radius:6px;padding:.55rem .8rem;margin-top:.6rem;
+            font-family:'Fira Code',monospace;font-size:.72rem;color:var(--green);
+            border:1px solid rgba(0,255,157,.13);word-break:break-all;line-height:1.5;}
+
+        /* Output Preview */
+        .output-preview{
+            background:rgba(0,0,0,.6);border:1px solid rgba(0,255,255,.1);border-radius:6px;
+            padding:.55rem .8rem;margin-top:.6rem;max-height:120px;overflow-y:auto;
+            font-family:'Fira Code',monospace;font-size:.7rem;color:var(--text2);line-height:1.6;
+            white-space:pre-wrap;word-break:break-all;
+        }
+
+        /* Empty state */
+        .empty{text-align:center;padding:3.5rem 2rem;color:var(--text2);}
+        .empty i{font-size:2.5rem;opacity:.18;display:block;margin-bottom:1rem;}
+        .empty p{font-size:.85rem;}
+
+        /* Pagination */
+        .pagination{display:flex;gap:.45rem;align-items:center;justify-content:center;margin-top:1.4rem;flex-wrap:wrap;}
+        .page-btn{
+            background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;
+            padding:.38rem .7rem;font-size:.78rem;color:var(--text2);cursor:pointer;transition:all .2s;
+            display:flex;align-items:center;
+        }
+        .page-btn:hover{border-color:rgba(0,255,255,.35);color:var(--cyan);}
+        .page-btn.active{background:rgba(0,255,255,.1);border-color:rgba(0,255,255,.38);color:var(--cyan);font-weight:700;}
+        .page-btn:disabled{opacity:.3;cursor:not-allowed;}
+        .page-info{font-size:.78rem;color:var(--text2);font-family:'Fira Code',monospace;padding:0 .4rem;}
+
+        @media(max-width:600px){nav{display:none;}.h-meta{display:none;}}
+    </style>
+</head>
+<body>
+<header>
+    <a class="logo" href="/dashboard">
+        <div class="logo-icon"><i class="fas fa-shield-halved"></i></div>
+        <div><div class="logo-name">SENTINEL-1</div></div>
+    </a>
+    <nav>
+        <a class="nav-a" href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-a" href="/scan"><i class="fas fa-search"></i> Scanner</a>
+        <a class="nav-a" href="/results"><i class="fas fa-file-alt"></i> Results</a>
+        <a class="nav-a active" href="/history"><i class="fas fa-history"></i> History</a>
+        <a class="nav-a" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+    </nav>
+    <div style="display:flex;gap:.5rem;">
+        <a class="btn-sm" href="/dashboard"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <a class="btn-sm" href="/logout" style="color:#f87171;border-color:rgba(255,49,49,.22);"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</header>
+
+<main>
+    <div class="page-hd">
+        <div>
+            <h1><i class="fas fa-history" style="color:var(--cyan);"></i>&nbsp; Scan &amp; Attack <span>History</span></h1>
+            <p>Historical records of all security scans and penetration tests</p>
+        </div>
+        <div class="hd-actions">
+            <button class="export-btn" onclick="exportHistory()"><i class="fas fa-download"></i> Export JSON</button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary">
+        <div class="sum-card sc-cyan">
+            <div class="sum-icon" style="background:rgba(0,255,255,.1);color:var(--cyan);"><i class="fas fa-search"></i></div>
+            <div><div class="sum-val" id="total-scans">0</div><div class="sum-lbl">Scans</div></div>
+        </div>
+        <div class="sum-card sc-red">
+            <div class="sum-icon" style="background:rgba(255,49,49,.1);color:var(--red);"><i class="fas fa-bolt"></i></div>
+            <div><div class="sum-val" id="total-attacks">0</div><div class="sum-lbl">Attacks</div></div>
+        </div>
+        <div class="sum-card sc-green">
+            <div class="sum-icon" style="background:rgba(0,255,157,.1);color:var(--green);"><i class="fas fa-check-circle"></i></div>
+            <div><div class="sum-val" id="success-count">0</div><div class="sum-lbl">Successful</div></div>
+        </div>
+        <div class="sum-card sc-orange">
+            <div class="sum-icon" style="background:rgba(255,136,0,.1);color:var(--orange);"><i class="fas fa-bug"></i></div>
+            <div><div class="sum-val" id="vuln-count">0</div><div class="sum-lbl">Vulns Found</div></div>
+        </div>
+        <div class="sum-card sc-purple">
+            <div class="sum-icon" style="background:rgba(153,69,255,.1);color:var(--purple);"><i class="fas fa-calendar-day"></i></div>
+            <div><div class="sum-val" id="today-count">0</div><div class="sum-lbl">Today</div></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <span class="filter-label"><i class="fas fa-sliders-h"></i> Filters</span>
+        <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+            <option value="all">All Types</option>
+            <option value="scan">Scans Only</option>
+            <option value="attack">Attacks Only</option>
+        </select>
+        <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+            <option value="all">All Status</option>
+            <option value="success">Success / Completed</option>
+            <option value="failed">Failed</option>
+        </select>
+        <input class="filter-input" id="toolFilter" placeholder="Filter by tool..." oninput="applyFilters()">
+        <input class="filter-input" id="targetFilter" placeholder="Filter by target..." oninput="applyFilters()">
+        <button class="clear-btn" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" id="tab-all" onclick="switchTab('all')">
+            <i class="fas fa-list"></i> All <span class="tab-count" id="cnt-all">0</span>
+        </div>
+        <div class="tab" id="tab-scans" onclick="switchTab('scans')">
+            <i class="fas fa-search"></i> Scans <span class="tab-count" id="cnt-scans">0</span>
+        </div>
+        <div class="tab" id="tab-attacks" onclick="switchTab('attacks')">
+            <i class="fas fa-bolt"></i> Attacks <span class="tab-count" id="cnt-attacks">0</span>
+        </div>
+        <div class="tab" id="tab-today" onclick="switchTab('today')">
+            <i class="fas fa-clock"></i> Today <span class="tab-count" id="cnt-today">0</span>
+        </div>
+        <div class="tab" id="tab-critical" onclick="switchTab('critical')">
+            <i class="fas fa-exclamation-circle" style="color:var(--red);"></i> Critical <span class="tab-count" id="cnt-critical">0</span>
+        </div>
+    </div>
+
+    <!-- History List -->
+    <div class="history-list" id="historyList">
+        <div class="empty">
+            <i class="fas fa-history"></i>
+            <p>No history records found</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none;"></div>
+</main>
+
+<script>
+// Mock data for demonstration - replace with actual API calls
+let allItems = [];
+let filteredItems = [];
+let currentTab = 'all';
+let currentPage = 1;
+const PER_PAGE = 15;
+
+// Mock data generator (remove this in production and use real API data)
+function generateMockData() {
+    const scans = [];
+    const attacks = [];
+    
+    // Generate mock scans
+    for (let i = 1; i <= 25; i++) {
+        scans.push({
+            id: i,
+            type: 'scan',
+            target: `192.168.1.${i % 254 + 1}`,
+            tool_used: i % 3 === 0 ? 'nmap' : (i % 3 === 1 ? 'nikto' : 'sqlmap'),
+            scan_type: i % 2 === 0 ? 'Full Port Scan' : 'Vulnerability Scan',
+            status: i % 4 === 0 ? 'failed' : 'completed',
+            timestamp: new Date(Date.now() - (i * 3600000)).toISOString(),
+            vulnerabilities: i % 3 === 0 ? [
+                { name: 'SQL Injection', severity: 'CRITICAL' },
+                { name: 'XSS Vulnerability', severity: 'HIGH' }
+            ] : (i % 5 === 0 ? [
+                { name: 'Open Port 22', severity: 'LOW' }
+            ] : []),
+            results: `Scan completed. Found ${i % 3 === 0 ? 2 : (i % 5 === 0 ? 1 : 0)} vulnerabilities.`
+        });
+    }
+    
+    // Generate mock attacks
+    for (let i = 1; i <= 20; i++) {
+        attacks.push({
+            id: i,
+            type: 'attack',
+            target: `target-${i}.example.com`,
+            tool_used: i % 2 === 0 ? 'metasploit' : 'burpsuite',
+            attack_type: i % 3 === 0 ? 'Reverse Shell' : (i % 3 === 1 ? 'SQL Injection' : 'Brute Force'),
+            success: i % 2 === 0,
+            timestamp: new Date(Date.now() - (i * 7200000)).toISOString(),
+            command: i % 2 === 0 ? `msfconsole -q -x "use exploit/multi/handler; set PAYLOAD windows/meterpreter/reverse_tcp; set LHOST 127.0.0.1; set LPORT 4444; exploit"` : `sqlmap -u "http://target-${i}.example.com/page?id=1" --dbs`,
+            output: `Attack ${i % 2 === 0 ? 'successful' : 'failed'}. ${i % 2 === 0 ? 'Gained access to target system' : 'Target appears to be protected'}`
+        });
+    }
+    
+    return { scans, attacks };
+}
+
+// Initialize with mock data (replace with actual API call)
+const mockData = generateMockData();
+const RAW_SCANS = mockData.scans;
+const RAW_ATTACKS = mockData.attacks;
+
+function buildItems() {
+    allItems = [];
+    RAW_SCANS.forEach(s => {
+        allItems.push({
+            id: s.id,
+            type: 'scan',
+            target: s.target || 'unknown',
+            tool_used: s.tool_used || 'nmap',
+            scan_type: s.scan_type || s.tool_used || 'scan',
+            status: s.status || 'completed',
+            timestamp: s.timestamp || new Date().toISOString(),
+            vulnerabilities: s.vulnerabilities,
+            results: s.results
+        });
+    });
+    
+    RAW_ATTACKS.forEach(a => {
+        allItems.push({
+            id: a.id,
+            type: 'attack',
+            target: a.target || 'unknown',
+            tool_used: a.tool_used || 'unknown',
+            attack_type: a.attack_type || a.tool_used || 'attack',
+            success: a.success === true || a.success === 1,
+            timestamp: a.timestamp || new Date().toISOString(),
+            command: a.command || '',
+            output: a.output || ''
+        });
+    });
+    
+    allItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Update counts
+    const today = new Date().setHours(0, 0, 0, 0);
+    const todayItems = allItems.filter(i => new Date(i.timestamp) >= today);
+    document.getElementById('cnt-all').textContent = allItems.length;
+    document.getElementById('cnt-scans').textContent = RAW_SCANS.length;
+    document.getElementById('cnt-attacks').textContent = RAW_ATTACKS.length;
+    document.getElementById('cnt-today').textContent = todayItems.length;
+    document.getElementById('today-count').textContent = todayItems.length;
+    document.getElementById('total-scans').textContent = RAW_SCANS.length;
+    document.getElementById('total-attacks').textContent = RAW_ATTACKS.length;
+    
+    // Calculate vulnerabilities
+    let vulnTotal = 0;
+    let critCount = 0;
+    RAW_SCANS.forEach(s => {
+        if (s.vulnerabilities && s.vulnerabilities.length) {
+            vulnTotal += s.vulnerabilities.length;
+            critCount += s.vulnerabilities.filter(x => x.severity === 'CRITICAL').length;
+        }
+    });
+    document.getElementById('vuln-count').textContent = vulnTotal || '0';
+    document.getElementById('cnt-critical').textContent = critCount;
+    
+    // Calculate successful attacks
+    const successCount = RAW_ATTACKS.filter(a => a.success === true || a.success === 1).length;
+    document.getElementById('success-count').textContent = successCount;
+}
+
+function applyFilters() {
+    const type = document.getElementById('typeFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const tool = document.getElementById('toolFilter').value.toLowerCase();
+    const target = document.getElementById('targetFilter').value.toLowerCase();
+    
+    filteredItems = allItems.filter(item => {
+        // Type filter
+        if (type === 'scan' && item.type !== 'scan') return false;
+        if (type === 'attack' && item.type !== 'attack') return false;
+        
+        // Status filter
+        if (status === 'success') {
+            if (item.type === 'scan' && item.status !== 'completed') return false;
+            if (item.type === 'attack' && !item.success) return false;
+        }
+        if (status === 'failed') {
+            if (item.type === 'scan' && item.status === 'completed') return false;
+            if (item.type === 'attack' && item.success) return false;
+        }
+        
+        // Tool filter
+        if (tool && !(item.tool_used || '').toLowerCase().includes(tool)) return false;
+        
+        // Target filter
+        if (target && !(item.target || '').toLowerCase().includes(target)) return false;
+        
+        // Tab filters
+        if (currentTab === 'scans' && item.type !== 'scan') return false;
+        if (currentTab === 'attacks' && item.type !== 'attack') return false;
+        if (currentTab === 'today') {
+            const today = new Date().setHours(0, 0, 0, 0);
+            if (new Date(item.timestamp) < today) return false;
+        }
+        if (currentTab === 'critical') {
+            if (item.type !== 'scan') return false;
+            try {
+                const v = item.vulnerabilities;
+                if (!v || !v.some(x => x.severity === 'CRITICAL')) return false;
+            } catch(e) { return false; }
+        }
+        
+        return true;
+    });
+    
+    currentPage = 1;
+    renderPage();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    applyFilters();
+}
+
+function clearFilters() {
+    document.getElementById('typeFilter').value = 'all';
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('toolFilter').value = '';
+    document.getElementById('targetFilter').value = '';
+    applyFilters();
+}
+
+function sevClass(s) {
+    const classes = { 'CRITICAL': 'vc', 'HIGH': 'vh', 'MEDIUM': 'vm', 'LOW': 'vl' };
+    return classes[s] || 'vl';
+}
+
+function fmtTime(ts) {
+    try {
+        return new Date(ts).toLocaleString();
+    } catch(e) {
+        return String(ts);
+    }
+}
+
+function fmtTimeRel(ts) {
+    try {
+        const diff = Date.now() - new Date(ts).getTime();
+        if (diff < 60000) return 'just now';
+        if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+        return Math.floor(diff / 86400000) + 'd ago';
+    } catch(e) {
+        return '';
+    }
+}
+
+function truncate(s, n) {
+    if (!s) return '';
+    return s.length > n ? s.substring(0, n) + '…' : s;
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderPage() {
+    const list = document.getElementById('historyList');
+    const pag = document.getElementById('pagination');
+    
+    if (filteredItems.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-history"></i><p>No records found. Try adjusting filters.</p></div>`;
+        pag.style.display = 'none';
+        return;
+    }
+    
+    const start = (currentPage - 1) * PER_PAGE;
+    const pageItems = filteredItems.slice(start, start + PER_PAGE);
+    const totalPages = Math.ceil(filteredItems.length / PER_PAGE);
+    
+    list.innerHTML = pageItems.map(item => {
+        const isScan = item.type === 'scan';
+        const iconBg = isScan ? 'rgba(0,255,255,.1)' : 'rgba(255,49,49,.1)';
+        const iconColor = isScan ? 'var(--cyan)' : 'var(--red)';
+        const iconClass = isScan ? 'fa-search' : 'fa-bolt';
+        const borderClass = isScan ? 'scan-item' : 'attack-item';
+        
+        let statusBadge = '';
+        if (isScan) {
+            const sc = item.status === 'completed' ? 'st-completed' : (item.status === 'failed' ? 'st-failed' : 'st-pending');
+            statusBadge = `<span class="status-badge ${sc}">${item.status || 'unknown'}</span>`;
+        } else {
+            statusBadge = item.success
+                ? `<span class="status-badge st-success">HIT</span>`
+                : `<span class="status-badge st-failed">MISS</span>`;
+        }
+        
+        let vulnHtml = '';
+        if (isScan && item.vulnerabilities && item.vulnerabilities.length > 0) {
+            vulnHtml = `<div style="grid-column:1/-1;">
+                <div class="detail-lbl">Vulnerabilities Found (${item.vulnerabilities.length})</div>
+                <div class="vuln-tags">${item.vulnerabilities.slice(0, 8).map(v => `<span class="vuln-tag ${sevClass(v.severity)}">${escHtml(v.name)}</span>`).join('')}${item.vulnerabilities.length > 8 ? `<span class="vuln-tag vm">+${item.vulnerabilities.length - 8} more</span>` : ''}</div>
+            </div>`;
+        }
+        
+        let cmdHtml = '';
+        if (!isScan && item.command) {
+            cmdHtml = `<div style="grid-column:1/-1;"><div class="detail-lbl">Command</div><div class="cmd-box">${escHtml(item.command)}</div></div>`;
+        }
+        
+        let outputHtml = '';
+        if (item.output) {
+            const preview = typeof item.output === 'string' ? item.output : JSON.stringify(item.output, null, 2);
+            if (preview && preview.length > 10) {
+                outputHtml = `<div style="grid-column:1/-1;">
+                    <div class="detail-lbl">Output Preview</div>
+                    <div class="output-preview">${escHtml(preview.substring(0, 800))}${preview.length > 800 ? '\n...(truncated)' : ''}</div>
+                </div>`;
+            }
+        }
+        
+        const detailItems = isScan ? `
+            <div class="detail-item"><div class="detail-lbl">Scan ID</div><div class="detail-val">#${item.id}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Tool</div><div class="detail-val">${escHtml(item.tool_used)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Type</div><div class="detail-val">${escHtml(item.scan_type)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Status</div><div class="detail-val">${item.status}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Time</div><div class="detail-val">${fmtTime(item.timestamp)}</div></div>
+            ${vulnHtml}${outputHtml}
+        ` : `
+            <div class="detail-item"><div class="detail-lbl">Attack ID</div><div class="detail-val">#${item.id}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Tool</div><div class="detail-val">${escHtml(item.tool_used)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Type</div><div class="detail-val">${escHtml(item.attack_type)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Result</div><div class="detail-val" style="color:${item.success ? 'var(--green)' : 'var(--red)'};">${item.success ? '✓ Successful' : '✗ Failed'}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Time</div><div class="detail-val">${fmtTime(item.timestamp)}</div></div>
+            ${cmdHtml}${outputHtml}
+        `;
+        
+        return `
+        <div class="history-item ${borderClass}" data-id="${item.type}-${item.id}">
+            <div class="history-header" onclick="toggleItem(this.parentElement)">
+                <div class="history-main">
+                    <div class="h-icon" style="background:${iconBg};color:${iconColor};"><i class="fas ${iconClass}"></i></div>
+                    <div class="h-info">
+                        <div class="h-target">${truncate(item.target, 70)}</div>
+                        <div class="h-meta">
+                            <span><i class="fas fa-tools"></i> ${escHtml(item.tool_used)}</span>
+                            <span><i class="fas fa-clock"></i> ${fmtTimeRel(item.timestamp)}</span>
+                            <span><i class="fas fa-tag"></i> ${escHtml(isScan ? item.scan_type : item.attack_type)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-right">
+                    ${statusBadge}
+                    <i class="fas fa-chevron-down expand-icon"></i>
+                </div>
+            </div>
+            <div class="history-details">
+                <div class="details-grid">${detailItems}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    // Render pagination
+    let pagHtml = '';
+    pagHtml += `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}><i class="fas fa-angle-left"></i></button>`;
+    
+    const start2 = Math.max(1, currentPage - 2);
+    const end2 = Math.min(totalPages, currentPage + 2);
+    if (start2 > 1) pagHtml += `<button class="page-btn" onclick="goPage(1)">1</button>${start2 > 2 ? '<span style="color:var(--text2);font-size:.8rem;padding:0 .2rem;">…</span>' : ''}`;
+    for (let i = start2; i <= end2; i++) {
+        pagHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    if (end2 < totalPages) pagHtml += `${end2 < totalPages - 1 ? '<span style="color:var(--text2);font-size:.8rem;padding:0 .2rem;">…</span>' : ''}<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+    
+    pagHtml += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}><i class="fas fa-angle-right"></i></button>`;
+    pagHtml += `<span class="page-info">${start + 1}–${Math.min(start + PER_PAGE, filteredItems.length)} of ${filteredItems.length}</span>`;
+    
+    pag.innerHTML = pagHtml;
+    pag.style.display = 'flex';
+}
+
+function goPage(page) {
+    currentPage = page;
+    renderPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleItem(el) {
+    el.classList.toggle('expanded');
+}
+
+function exportHistory() {
+    const data = filteredItems.map(item => ({ ...item }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sentinel_history_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Initialize
+buildItems();
+applyFilters();
+</script>
+</body>
+</html>

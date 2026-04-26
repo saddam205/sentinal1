@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Scan & Attack History</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Orbitron:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --cyan:#00ffff;--purple:#9945FF;--green:#00ff9d;--red:#ff3131;
+            --orange:#ff8800;--yellow:#ffd700;--pink:#ff66cc;
+            --bg:#02040a;--panel:rgba(13,17,23,.95);--border:rgba(0,255,255,.15);
+            --text:#c9d1d9;--text2:#6b7280;--text3:#374151;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+            background:radial-gradient(ellipse 70% 50% at 10% 20%,rgba(0,255,255,.03),transparent 60%),
+                        repeating-linear-gradient(45deg,rgba(0,255,255,.012) 0,rgba(0,255,255,.012) 1px,transparent 1px,transparent 8px);}
+
+        /* Header */
+        header{position:sticky;top:0;z-index:100;background:rgba(2,4,10,.95);backdrop-filter:blur(12px);
+            border-bottom:1px solid var(--border);padding:.8rem 1.5rem;
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;}
+        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+        .logo-icon{width:34px;height:34px;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+            display:flex;align-items:center;justify-content:center;font-size:15px;color:#000;}
+        .logo-name{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
+            background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;}
+        nav{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;}
+        .nav-a{color:var(--text2);text-decoration:none;font-size:.8rem;font-weight:500;
+            display:flex;align-items:center;gap:6px;padding:.3rem .5rem;border-radius:6px;transition:all .2s;}
+        .nav-a:hover,.nav-a.active{color:var(--cyan);}
+        .nav-a.active{background:rgba(0,255,255,.08);}
+        .btn-sm{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);
+            padding:.35rem .9rem;border-radius:6px;font-size:.75rem;text-decoration:none;transition:all .2s;}
+        .btn-sm:hover{background:rgba(0,255,255,.08);color:var(--cyan);}
+
+        /* Main */
+        main{max-width:1200px;margin:0 auto;padding:1.5rem;position:relative;z-index:1;}
+
+        /* Page header */
+        .page-hd{display:flex;justify-content:space-between;align-items:flex-start;
+            flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;}
+        .page-hd h1{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:1px;}
+        .page-hd h1 span{background:linear-gradient(135deg,var(--cyan),var(--purple));
+            -webkit-background-clip:text;background-clip:text;color:transparent;}
+        .page-hd p{font-size:.8rem;color:var(--text2);margin-top:.25rem;}
+        .export-btn{background:rgba(0,255,157,.08);border:1px solid rgba(0,255,157,.25);
+            color:var(--green);padding:.5rem 1.25rem;border-radius:8px;font-size:.8rem;
+            font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;}
+        .export-btn:hover{background:rgba(0,255,157,.15);}
+
+        /* Summary cards */
+        .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;}
+        .sum-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:1rem;display:flex;align-items:center;gap:.75rem;transition:all .2s;}
+        .sum-card:hover{border-color:rgba(0,255,255,.3);transform:translateY(-2px);}
+        .sum-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+        .sum-val{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:700;}
+        .sum-lbl{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;}
+
+        /* Filters */
+        .filters-bar{
+            background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            padding:1rem 1.25rem;margin-bottom:1.25rem;
+            display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;
+        }
+        .filter-label{font-size:.7rem;color:var(--text2);font-weight:700;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;}
+        .filter-select,.filter-input{
+            background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;
+            color:var(--text);font-size:.8rem;padding:.4rem .7rem;outline:none;
+            font-family:'Inter',sans-serif;min-width:130px;transition:border-color .2s;
+        }
+        .filter-select:focus,.filter-input:focus{border-color:var(--cyan);}
+        .filter-input{min-width:160px;}
+        .clear-btn{background:rgba(255,49,49,.08);border:1px solid rgba(255,49,49,.25);
+            color:#f87171;padding:.4rem .85rem;border-radius:6px;font-size:.75rem;cursor:pointer;
+            display:flex;align-items:center;gap:5px;transition:all .2s;margin-left:auto;}
+        .clear-btn:hover{background:rgba(255,49,49,.15);}
+
+        /* Tabs */
+        .tabs{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+        .tab{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;
+            padding:.45rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;
+            display:flex;align-items:center;gap:6px;color:var(--text2);}
+        .tab:hover{border-color:rgba(0,255,255,.3);color:var(--text);}
+        .tab.active{background:rgba(0,255,255,.1);border-color:rgba(0,255,255,.4);color:var(--cyan);}
+        .tab-count{background:rgba(255,255,255,.08);border-radius:4px;padding:.1rem .4rem;font-size:.7rem;font-family:'Fira Code',monospace;}
+        .tab.active .tab-count{background:rgba(0,255,255,.15);}
+
+        /* History list */
+        .history-list{display:flex;flex-direction:column;gap:.6rem;}
+        .history-item{
+            background:var(--panel);border:1px solid var(--border);border-radius:10px;
+            overflow:hidden;transition:border-color .2s;
+        }
+        .history-item:hover{border-color:rgba(0,255,255,.3);}
+        .history-item.scan-item{border-left:3px solid var(--cyan);}
+        .history-item.attack-item{border-left:3px solid var(--red);}
+        .history-item.expanded .history-details{display:block;}
+        .history-item.expanded .expand-icon{transform:rotate(180deg);}
+
+        .history-header{
+            padding:.85rem 1.25rem;cursor:pointer;
+            display:flex;justify-content:space-between;align-items:center;gap:.75rem;
+        }
+        .history-main{display:flex;align-items:center;gap:.75rem;flex:1;min-width:0;}
+        .h-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;}
+        .h-info{flex:1;min-width:0;}
+        .h-target{font-size:.9rem;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .h-meta{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.2rem;}
+        .h-meta span{font-size:.7rem;color:var(--text2);display:flex;align-items:center;gap:4px;}
+        .h-meta i{font-size:.65rem;}
+        .h-right{display:flex;align-items:center;gap:.75rem;flex-shrink:0;}
+        .expand-icon{color:var(--text2);font-size:.75rem;transition:transform .2s;}
+        .status-badge{font-size:.65rem;font-weight:700;padding:.2rem .55rem;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;}
+        .st-success{background:rgba(0,255,157,.12);color:var(--green);border:1px solid rgba(0,255,157,.25);}
+        .st-failed{background:rgba(255,49,49,.12);color:var(--red);border:1px solid rgba(255,49,49,.25);}
+        .st-pending{background:rgba(255,215,0,.12);color:var(--yellow);border:1px solid rgba(255,215,0,.25);}
+        .st-completed{background:rgba(0,255,157,.12);color:var(--green);border:1px solid rgba(0,255,157,.25);}
+
+        /* Details */
+        .history-details{display:none;padding:0 1.25rem 1rem;border-top:1px solid rgba(255,255,255,.05);}
+        .details-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem;padding-top:.85rem;}
+        .detail-item{background:rgba(0,0,0,.3);border-radius:7px;padding:.65rem .85rem;}
+        .detail-lbl{font-size:.65rem;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:.3rem;}
+        .detail-val{font-size:.8rem;font-family:'Fira Code',monospace;color:#e2e8f0;word-break:break-all;}
+        .vuln-tags{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.65rem;}
+        .vuln-tag{font-size:.7rem;padding:.2rem .55rem;border-radius:4px;border:1px solid;font-weight:600;}
+        .vc{border-color:#ff3131;color:#ff3131;background:rgba(255,49,49,.08);}
+        .vh{border-color:#ff8800;color:#ff8800;background:rgba(255,136,0,.08);}
+        .vm{border-color:#ffd700;color:#ffd700;background:rgba(255,215,0,.08);}
+        .vl{border-color:#00ff9d;color:#00ff9d;background:rgba(0,255,157,.08);}
+        .cmd-box{background:#000;border-radius:6px;padding:.6rem .85rem;margin-top:.65rem;
+            font-family:'Fira Code',monospace;font-size:.75rem;color:var(--green);
+            border:1px solid rgba(0,255,157,.15);word-break:break-all;}
+
+        /* Empty state */
+        .empty{text-align:center;padding:4rem 2rem;color:var(--text2);}
+        .empty i{font-size:3rem;opacity:.2;display:block;margin-bottom:1rem;}
+        .empty p{font-size:.9rem;}
+
+        /* Pagination */
+        .pagination{display:flex;gap:.5rem;align-items:center;justify-content:center;margin-top:1.5rem;}
+        .page-btn{
+            background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;
+            padding:.4rem .75rem;font-size:.8rem;color:var(--text2);cursor:pointer;transition:all .2s;
+            text-decoration:none;display:flex;align-items:center;
+        }
+        .page-btn:hover{border-color:rgba(0,255,255,.4);color:var(--cyan);}
+        .page-btn.active{background:rgba(0,255,255,.12);border-color:rgba(0,255,255,.4);color:var(--cyan);font-weight:700;}
+        .page-btn:disabled{opacity:.35;cursor:not-allowed;}
+        .page-info{font-size:.8rem;color:var(--text2);font-family:'Fira Code',monospace;padding:0 .5rem;}
+
+        @media(max-width:600px){nav{display:none;}.h-meta{display:none;}}
+    </style>
+</head>
+<body>
+<header>
+    <a class="logo" href="/dashboard">
+        <div class="logo-icon"><i class="fas fa-shield-halved"></i></div>
+        <div><div class="logo-name">SENTINEL-1</div></div>
+    </a>
+    <nav>
+        <a class="nav-a" href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-a" href="/scan"><i class="fas fa-search"></i> Scanner</a>
+        <a class="nav-a" href="/results"><i class="fas fa-file-alt"></i> Results</a>
+        <a class="nav-a active" href="/history"><i class="fas fa-history"></i> History</a>
+        <a class="nav-a" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+    </nav>
+    <div style="display:flex;gap:.5rem;">
+        <a class="btn-sm" href="/dashboard"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <a class="btn-sm" href="/logout" style="color:#f87171;"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</header>
+
+<main>
+    <div class="page-hd">
+        <div>
+            <h1><i class="fas fa-history" style="color:var(--cyan);"></i>&nbsp; Scan &amp; Attack <span>History</span></h1>
+            <p>Page {{ page|default(1) }} &nbsp;·&nbsp; {{ scans|default([])|length }} scans &nbsp;·&nbsp; {{ attacks|default([])|length }} attacks</p>
+        </div>
+        <button class="export-btn" onclick="exportHistory()"><i class="fas fa-download"></i> Export JSON</button>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary">
+        <div class="sum-card">
+            <div class="sum-icon" style="background:rgba(0,255,255,.1);color:var(--cyan);"><i class="fas fa-search"></i></div>
+            <div><div class="sum-val" style="color:var(--cyan);" id="total-scans">{{ scans|default([])|length }}</div><div class="sum-lbl">Scans</div></div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon" style="background:rgba(255,49,49,.1);color:var(--red);"><i class="fas fa-bolt"></i></div>
+            <div><div class="sum-val" style="color:var(--red);" id="total-attacks">{{ attacks|default([])|length }}</div><div class="sum-lbl">Attacks</div></div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon" style="background:rgba(0,255,157,.1);color:var(--green);"><i class="fas fa-check-circle"></i></div>
+            <div><div class="sum-val" style="color:var(--green);" id="success-count">0</div><div class="sum-lbl">Successful</div></div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon" style="background:rgba(255,136,0,.1);color:var(--orange);"><i class="fas fa-exclamation-triangle"></i></div>
+            <div><div class="sum-val" style="color:var(--orange);" id="vuln-count">—</div><div class="sum-lbl">Vulns Found</div></div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon" style="background:rgba(153,69,255,.1);color:var(--purple);"><i class="fas fa-calendar"></i></div>
+            <div><div class="sum-val" style="color:var(--purple);font-size:1rem;padding-top:.2rem;">{{ page|default(1) }}</div><div class="sum-lbl">Page</div></div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+        <span class="filter-label"><i class="fas fa-filter"></i> Filters</span>
+        <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+            <option value="all">All Types</option>
+            <option value="scan">Scans Only</option>
+            <option value="attack">Attacks Only</option>
+        </select>
+        <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+            <option value="all">All Status</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+        </select>
+        <input class="filter-input" id="toolFilter" placeholder="Filter by tool..." oninput="applyFilters()">
+        <input class="filter-input" id="targetFilter" placeholder="Filter by target..." oninput="applyFilters()">
+        <button class="clear-btn" onclick="clearFilters()"><i class="fas fa-times"></i> Clear</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" id="tab-all" onclick="switchTab('all')">
+            <i class="fas fa-list"></i> All <span class="tab-count" id="cnt-all">—</span>
+        </div>
+        <div class="tab" id="tab-scans" onclick="switchTab('scans')">
+            <i class="fas fa-search"></i> Scans <span class="tab-count" id="cnt-scans">{{ scans|default([])|length }}</span>
+        </div>
+        <div class="tab" id="tab-attacks" onclick="switchTab('attacks')">
+            <i class="fas fa-bolt"></i> Attacks <span class="tab-count" id="cnt-attacks">{{ attacks|default([])|length }}</span>
+        </div>
+        <div class="tab" id="tab-today" onclick="switchTab('today')">
+            <i class="fas fa-clock"></i> Today <span class="tab-count" id="cnt-today">—</span>
+        </div>
+    </div>
+
+    <!-- History list -->
+    <div class="history-list" id="historyList">
+        <div class="empty" id="loadingState">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading history...</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none;"></div>
+</main>
+
+<script>
+// ── Data from Jinja2 with safe fallbacks ──
+const RAW_SCANS = {{ scans|default([])|tojson }};
+const RAW_ATTACKS = {{ attacks|default([])|tojson }};
+
+let allItems = [], filteredItems = [], currentTab = 'all', currentPage = 1;
+const PER_PAGE = 10;
+
+// Build combined list
+function buildItems() {
+    allItems = [];
+    
+    // Add scans
+    RAW_SCANS.forEach(s => {
+        allItems.push({
+            id: s.id,
+            type: 'scan',
+            target: s.target || 'unknown',
+            tool_used: s.tool_used || 'nmap',
+            scan_type: s.scan_type || s.tool_used || 'scan',
+            status: s.status || 'completed',
+            timestamp: s.timestamp || new Date().toISOString(),
+            vulnerabilities: s.vulnerabilities,
+            results: s.results
+        });
+    });
+    
+    // Add attacks
+    RAW_ATTACKS.forEach(a => {
+        allItems.push({
+            id: a.id,
+            type: 'attack',
+            target: a.target || 'unknown',
+            tool_used: a.tool_used || 'unknown',
+            attack_type: a.attack_type || a.tool_used || 'attack',
+            success: a.success === true || a.success === 1,
+            timestamp: a.timestamp || new Date().toISOString(),
+            command: a.command || '',
+            output: a.output
+        });
+    });
+    
+    // Sort by timestamp (newest first)
+    allItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Update counts
+    const today = new Date().setHours(0, 0, 0, 0);
+    const todayCount = allItems.filter(i => new Date(i.timestamp) >= today).length;
+    document.getElementById('cnt-all').textContent = allItems.length;
+    document.getElementById('cnt-today').textContent = todayCount;
+    
+    // Count vulnerabilities from scans
+    let vulnTotal = 0;
+    RAW_SCANS.forEach(s => {
+        try {
+            if (s.vulnerabilities) {
+                const v = typeof s.vulnerabilities === 'string' ? JSON.parse(s.vulnerabilities) : s.vulnerabilities;
+                vulnTotal += v ? v.length : 0;
+            }
+        } catch (e) { }
+    });
+    document.getElementById('vuln-count').textContent = vulnTotal || '0';
+    
+    // Count successful attacks
+    const successCount = RAW_ATTACKS.filter(a => a.success === true || a.success === 1).length;
+    document.getElementById('success-count').textContent = successCount;
+    
+    // Remove loading state
+    const loading = document.getElementById('loadingState');
+    if (loading) loading.remove();
+}
+
+function applyFilters() {
+    const type = document.getElementById('typeFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    const tool = document.getElementById('toolFilter').value.toLowerCase();
+    const target = document.getElementById('targetFilter').value.toLowerCase();
+    
+    filteredItems = allItems.filter(item => {
+        // Type filter
+        if (type === 'scan' && item.type !== 'scan') return false;
+        if (type === 'attack' && item.type !== 'attack') return false;
+        
+        // Status filter
+        if (status === 'success') {
+            if (item.type === 'scan' && item.status !== 'completed') return false;
+            if (item.type === 'attack' && !item.success) return false;
+        }
+        if (status === 'failed') {
+            if (item.type === 'scan' && item.status === 'completed') return false;
+            if (item.type === 'attack' && item.success) return false;
+        }
+        
+        // Tool filter
+        if (tool && !(item.tool_used || '').toLowerCase().includes(tool)) return false;
+        
+        // Target filter
+        if (target && !(item.target || '').toLowerCase().includes(target)) return false;
+        
+        // Tab filters
+        if (currentTab === 'scans' && item.type !== 'scan') return false;
+        if (currentTab === 'attacks' && item.type !== 'attack') return false;
+        if (currentTab === 'today') {
+            const today = new Date().setHours(0, 0, 0, 0);
+            if (new Date(item.timestamp) < today) return false;
+        }
+        
+        return true;
+    });
+    
+    currentPage = 1;
+    renderPage();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    applyFilters();
+}
+
+function clearFilters() {
+    document.getElementById('typeFilter').value = 'all';
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('toolFilter').value = '';
+    document.getElementById('targetFilter').value = '';
+    applyFilters();
+}
+
+function sevClass(s) {
+    const map = { 'CRITICAL': 'vc', 'HIGH': 'vh', 'MEDIUM': 'vm', 'LOW': 'vl' };
+    return map[s] || 'vl';
+}
+
+function fmtTime(ts) {
+    try {
+        return new Date(ts).toLocaleString();
+    } catch (e) {
+        return String(ts);
+    }
+}
+
+function truncate(s, n) {
+    if (!s) return '';
+    return s.length > n ? s.substring(0, n) + '…' : s;
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderPage() {
+    const list = document.getElementById('historyList');
+    const pag = document.getElementById('pagination');
+    
+    if (filteredItems.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-history"></i><p>No records found. Try adjusting filters.</p></div>`;
+        pag.style.display = 'none';
+        return;
+    }
+    
+    const start = (currentPage - 1) * PER_PAGE;
+    const pageItems = filteredItems.slice(start, start + PER_PAGE);
+    const totalPages = Math.ceil(filteredItems.length / PER_PAGE);
+    
+    list.innerHTML = pageItems.map(item => {
+        const isScan = item.type === 'scan';
+        const iconBg = isScan ? 'rgba(0,255,255,.1)' : 'rgba(255,49,49,.1)';
+        const iconColor = isScan ? 'var(--cyan)' : 'var(--red)';
+        const iconClass = isScan ? 'fa-search' : 'fa-bolt';
+        const borderClass = isScan ? 'scan-item' : 'attack-item';
+        
+        let statusBadge = '';
+        if (isScan) {
+            const sc = item.status === 'completed' ? 'st-completed' : 
+                       item.status === 'failed' ? 'st-failed' : 'st-pending';
+            statusBadge = `<span class="status-badge ${sc}">${item.status || 'unknown'}</span>`;
+        } else {
+            statusBadge = item.success 
+                ? `<span class="status-badge st-success">SUCCESS</span>`
+                : `<span class="status-badge st-failed">FAILED</span>`;
+        }
+        
+        let vulnHtml = '';
+        if (isScan && item.vulnerabilities) {
+            try {
+                let vulns = item.vulnerabilities;
+                if (typeof vulns === 'string') vulns = JSON.parse(vulns);
+                if (vulns && vulns.length > 0) {
+                    vulnHtml = `<div style="grid-column:1/-1;"><div class="detail-lbl">Vulnerabilities Found</div><div class="vuln-tags">${vulns.map(v => `<span class="vuln-tag ${sevClass(v.severity)}">${escHtml(v.name || v)}</span>`).join('')}</div></div>`;
+                }
+            } catch (e) { }
+        }
+        
+        let cmdHtml = '';
+        if (!isScan && item.command) {
+            cmdHtml = `<div style="grid-column:1/-1;"><div class="detail-lbl">Command</div><div class="cmd-box">${escHtml(item.command)}</div></div>`;
+        }
+        
+        const detailItems = isScan ? `
+            <div class="detail-item"><div class="detail-lbl">Scan ID</div><div class="detail-val">#${item.id}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Tool</div><div class="detail-val">${escHtml(item.tool_used)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Type</div><div class="detail-val">${escHtml(item.scan_type)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Status</div><div class="detail-val">${item.status}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Time</div><div class="detail-val">${fmtTime(item.timestamp)}</div></div>
+            ${vulnHtml}
+        ` : `
+            <div class="detail-item"><div class="detail-lbl">Attack ID</div><div class="detail-val">#${item.id}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Tool</div><div class="detail-val">${escHtml(item.tool_used)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Type</div><div class="detail-val">${escHtml(item.attack_type)}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Result</div><div class="detail-val">${item.success ? 'Successful' : 'Failed'}</div></div>
+            <div class="detail-item"><div class="detail-lbl">Time</div><div class="detail-val">${fmtTime(item.timestamp)}</div></div>
+            ${cmdHtml}
+        `;
+        
+        return `
+        <div class="history-item ${borderClass}" data-id="${item.type}-${item.id}">
+            <div class="history-header" onclick="toggleItem(this.parentElement)">
+                <div class="history-main">
+                    <div class="h-icon" style="background:${iconBg};color:${iconColor};"><i class="fas ${iconClass}"></i></div>
+                    <div class="h-info">
+                        <div class="h-target">${truncate(item.target, 60)}</div>
+                        <div class="h-meta">
+                            <span><i class="fas fa-tools"></i> ${escHtml(item.tool_used)}</span>
+                            <span><i class="fas fa-clock"></i> ${fmtTime(item.timestamp)}</span>
+                            <span><i class="fas fa-tag"></i> ${escHtml(isScan ? item.scan_type : item.attack_type)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-right">
+                    ${statusBadge}
+                    <i class="fas fa-chevron-down expand-icon"></i>
+                </div>
+            </div>
+            <div class="history-details">
+                <div class="details-grid">${detailItems}</div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    // Pagination
+    let pagHtml = '';
+    if (currentPage > 1) {
+        pagHtml += `<button class="page-btn" onclick="goPage(${currentPage - 1})"><i class="fas fa-angle-left"></i></button>`;
+    } else {
+        pagHtml += `<button class="page-btn" disabled><i class="fas fa-angle-left"></i></button>`;
+    }
+    
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        pagHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    
+    if (currentPage < totalPages) {
+        pagHtml += `<button class="page-btn" onclick="goPage(${currentPage + 1})"><i class="fas fa-angle-right"></i></button>`;
+    } else {
+        pagHtml += `<button class="page-btn" disabled><i class="fas fa-angle-right"></i></button>`;
+    }
+    pagHtml += `<span class="page-info">${start + 1}–${Math.min(start + PER_PAGE, filteredItems.length)} of ${filteredItems.length}</span>`;
+    
+    pag.innerHTML = pagHtml;
+    pag.style.display = 'flex';
+}
+
+function goPage(page) {
+    currentPage = page;
+    renderPage();
+    window.scrollTo(0, 0);
+}
+
+function toggleItem(el) {
+    el.classList.toggle('expanded');
+}
+
+function exportHistory() {
+    const data = filteredItems.map(item => ({
+        ...item,
+        timestamp: item.timestamp
+    }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sentinel_history_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Initialize
+buildItems();
+applyFilters();
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.pyc
+
+# Logs & DB
+*.log
+*.db
+# Prometheus binaries (too large)
+prometheus-*.tar.gz
+
+# ========================
+# 🚫 MODELS (local only)
+# ========================
+models/
+training/models/
+
+# ========================
+# 🚫 DATASETS (very large)
+# ========================
+data/
+*.csv
+*.jsonl
+
+# ========================
+# 🚫 BINARIES
+# ========================
+*.bin
+*.pth
+*.pkl
+*.faiss
+*.tar.gz
+
+# ========================
+# 🚫 PROMETHEUS
+# ========================
+prometheus-*
+
+# ========================
+# 🚫 LOGS / DB
+# ========================
+*.log
+*.db
+
+# ========================
+# 🚫 PYTHON
+# ========================
+__pycache__/
+*.pyc
+
+# ========================
+# 🚫 ENV
+# ========================
+venv/
+.env

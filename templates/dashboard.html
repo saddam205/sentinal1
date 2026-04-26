@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --cyan:#00ffff;--purple:#9945FF;--green:#00ff9d;--red:#ff3131;
+            --orange:#ff8800;--pink:#ff66cc;--yellow:#ffd700;--blue:#3b82f6;
+            --bg:#02040a;--panel:rgba(13,17,23,.97);--border:rgba(0,255,255,.15);
+            --text:#c9d1d9;--text2:#6b7280;--text3:#374151;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+        body::before{
+            content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+            background:
+                radial-gradient(ellipse 80% 60% at 5% 15%,rgba(0,255,255,.04),transparent 55%),
+                radial-gradient(ellipse 60% 70% at 95% 85%,rgba(153,69,255,.04),transparent 55%),
+                radial-gradient(ellipse 40% 40% at 50% 50%,rgba(0,255,157,.015),transparent 60%),
+                repeating-linear-gradient(45deg,rgba(0,255,255,.008) 0,rgba(0,255,255,.008) 1px,transparent 1px,transparent 10px);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar{width:5px;height:5px;}
+        ::-webkit-scrollbar-track{background:rgba(0,0,0,.2);}
+        ::-webkit-scrollbar-thumb{background:rgba(0,255,255,.2);border-radius:3px;}
+        ::-webkit-scrollbar-thumb:hover{background:rgba(0,255,255,.4);}
+
+        /* ── Header ── */
+        header{
+            position:sticky;top:0;z-index:100;
+            background:rgba(2,4,10,.98);backdrop-filter:blur(20px);
+            border-bottom:1px solid var(--border);padding:.7rem 1.5rem;
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;
+        }
+        .logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+        .logo-icon{
+            width:36px;height:36px;border-radius:8px;
+            background:linear-gradient(135deg,var(--cyan),var(--purple));
+            display:flex;align-items:center;justify-content:center;font-size:16px;color:#000;
+            box-shadow:0 0 20px rgba(0,255,255,.35);
+        }
+        .logo-name{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;
+            background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .logo-sub{font-size:.55rem;color:#444;font-family:'Fira Code',monospace;letter-spacing:1.5px;margin-top:1px;}
+        nav{display:flex;gap:.15rem;align-items:center;}
+        .nav-a{color:var(--text2);text-decoration:none;font-size:.78rem;font-weight:500;
+            display:flex;align-items:center;gap:5px;padding:.35rem .7rem;border-radius:6px;transition:all .2s;}
+        .nav-a:hover,.nav-a.active{color:var(--cyan);}
+        .nav-a.active{background:rgba(0,255,255,.08);color:var(--cyan);}
+        .user-pill{
+            display:flex;align-items:center;gap:.6rem;
+            background:rgba(255,255,255,.03);border:1px solid var(--border);
+            border-radius:30px;padding:.3rem .85rem .3rem .45rem;font-size:.8rem;
+        }
+        .avatar{width:26px;height:26px;border-radius:50%;
+            background:linear-gradient(135deg,var(--cyan),var(--purple));
+            display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.7rem;color:#000;}
+        .status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0;}
+        @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,157,.5);}50%{opacity:.6;box-shadow:0 0 0 4px rgba(0,255,157,.0);}}
+        .btn-logout{background:rgba(255,49,49,.08);border:1px solid rgba(255,49,49,.25);color:#f87171;
+            padding:.3rem .75rem;border-radius:6px;font-size:.75rem;text-decoration:none;transition:all .2s;}
+        .btn-logout:hover{background:rgba(255,49,49,.18);border-color:rgba(255,49,49,.4);}
+
+        /* ── Layout ── */
+        main{max-width:1440px;margin:0 auto;padding:1.25rem 1.5rem;position:relative;z-index:1;}
+
+        /* ── Welcome Banner ── */
+        .welcome{
+            background:linear-gradient(135deg,rgba(0,255,255,.05),rgba(153,69,255,.04),rgba(0,0,0,0));
+            border:1px solid rgba(0,255,255,.18);border-radius:14px;
+            padding:1.25rem 1.75rem;margin-bottom:1.25rem;
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;
+            position:relative;overflow:hidden;
+        }
+        .welcome::after{
+            content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;
+            background:radial-gradient(circle,rgba(0,255,255,.06),transparent 70%);
+            pointer-events:none;
+        }
+        .welcome-left h1{font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:700;}
+        .welcome-left h1 span{background:linear-gradient(135deg,var(--cyan),var(--purple));
+            -webkit-background-clip:text;background-clip:text;color:transparent;}
+        .welcome-left p{font-size:.75rem;color:var(--text2);margin-top:.3rem;font-family:'Fira Code',monospace;}
+        .welcome-right{display:flex;gap:.6rem;flex-wrap:wrap;}
+        .quick-btn{
+            background:rgba(0,255,255,.07);border:1px solid rgba(0,255,255,.2);
+            color:var(--cyan);padding:.45rem .9rem;border-radius:8px;
+            font-size:.78rem;font-weight:600;text-decoration:none;
+            display:flex;align-items:center;gap:5px;transition:all .2s;
+        }
+        .quick-btn:hover{background:rgba(0,255,255,.14);border-color:rgba(0,255,255,.4);transform:translateY(-1px);}
+        .quick-btn.danger{background:rgba(255,49,49,.07);border-color:rgba(255,49,49,.2);color:#f87171;}
+        .quick-btn.danger:hover{background:rgba(255,49,49,.14);}
+
+        /* ── Stats Grid ── */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.85rem;margin-bottom:1.25rem;}
+        .stat-card{
+            background:var(--panel);border:1px solid var(--border);border-radius:12px;
+            padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.25rem;
+            transition:all .3s;position:relative;overflow:hidden;cursor:default;
+        }
+        .stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;opacity:.7;}
+        .stat-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:50%;opacity:.04;transition:opacity .3s;}
+        .stat-card:hover{transform:translateY(-3px);border-color:rgba(0,255,255,.3);box-shadow:0 10px 35px rgba(0,0,0,.4);}
+        .stat-card:hover::before{opacity:.1;}
+        .stat-icon{font-size:1.15rem;margin-bottom:.2rem;}
+        .stat-val{font-family:'Orbitron',sans-serif;font-size:1.75rem;font-weight:700;line-height:1;}
+        .stat-lbl{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:.15rem;}
+        .stat-sub{font-size:.68rem;color:var(--text3);margin-top:.1rem;}
+        .sc-cyan .stat-val{color:var(--cyan);} .sc-cyan::after{background:var(--cyan);} .sc-cyan::before{background:var(--cyan);}
+        .sc-red .stat-val{color:var(--red);} .sc-red::after{background:var(--red);} .sc-red::before{background:var(--red);}
+        .sc-green .stat-val{color:var(--green);} .sc-green::after{background:var(--green);} .sc-green::before{background:var(--green);}
+        .sc-purple .stat-val{color:var(--purple);} .sc-purple::after{background:var(--purple);} .sc-purple::before{background:var(--purple);}
+        .sc-orange .stat-val{color:var(--orange);} .sc-orange::after{background:var(--orange);} .sc-orange::before{background:var(--orange);}
+        .sc-yellow .stat-val{color:var(--yellow);} .sc-yellow::after{background:var(--yellow);} .sc-yellow::before{background:var(--yellow);}
+
+        /* ── Main grid ── */
+        .main-grid{display:grid;grid-template-columns:1fr 1fr 310px;gap:1.1rem;}
+        @media(max-width:1150px){.main-grid{grid-template-columns:1fr 1fr;}}
+        @media(max-width:720px){.main-grid{grid-template-columns:1fr;}}
+
+        /* ── Card ── */
+        .card{
+            background:var(--panel);border:1px solid var(--border);border-radius:12px;
+            overflow:hidden;display:flex;flex-direction:column;
+        }
+        .card-hd{
+            padding:.8rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.05);
+            display:flex;justify-content:space-between;align-items:center;
+            background:rgba(0,0,0,.25);flex-shrink:0;
+        }
+        .card-title{font-size:.75rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+            display:flex;align-items:center;gap:7px;}
+        .card-body{padding:1.1rem;flex:1;overflow:auto;}
+        .card-footer{padding:.65rem 1.1rem;border-top:1px solid rgba(255,255,255,.04);
+            font-size:.68rem;color:var(--text3);display:flex;justify-content:space-between;flex-shrink:0;}
+
+        /* ── Neural Layers ── */
+        .layer-row{
+            display:flex;align-items:center;gap:.65rem;padding:.5rem 0;
+            border-bottom:1px solid rgba(255,255,255,.04);
+        }
+        .layer-row:last-child{border-bottom:none;}
+        .layer-ico{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0;}
+        .layer-info{flex:1;min-width:0;}
+        .layer-name-txt{font-size:.78rem;font-weight:600;color:#e2e8f0;}
+        .layer-status-txt{font-size:.68rem;color:var(--text2);font-family:'Fira Code',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .layer-right{text-align:right;flex-shrink:0;min-width:70px;}
+        .layer-pct{font-family:'Orbitron',sans-serif;font-size:.8rem;font-weight:700;}
+        .layer-bar-wrap{width:70px;height:3px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:3px;margin-left:auto;}
+        .layer-bar{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+
+        /* ── Activity ── */
+        .activity-item{
+            display:flex;align-items:flex-start;gap:.65rem;
+            padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.04);
+        }
+        .activity-item:last-child{border-bottom:none;}
+        .act-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0;}
+        .act-txt{font-size:.78rem;color:#e2e8f0;line-height:1.4;}
+        .act-time{font-size:.68rem;color:var(--text2);margin-top:2px;font-family:'Fira Code',monospace;}
+        .badge-sev{font-size:.6rem;font-weight:700;padding:.12rem .45rem;border-radius:3px;margin-left:.35rem;vertical-align:middle;}
+        .sev-critical{background:rgba(255,49,49,.15);color:#ff3131;}
+        .sev-high{background:rgba(255,136,0,.15);color:#ff8800;}
+        .sev-medium{background:rgba(255,215,0,.15);color:#ffd700;}
+        .sev-low{background:rgba(0,255,157,.15);color:#00ff9d;}
+
+        /* ── AI Suggestions ── */
+        .sugg-item{
+            background:rgba(0,0,0,.25);border:1px solid rgba(153,69,255,.18);
+            border-radius:8px;padding:.8rem;margin-bottom:.6rem;cursor:pointer;transition:all .2s;
+        }
+        .sugg-item:hover{border-color:rgba(153,69,255,.45);background:rgba(153,69,255,.06);transform:translateX(2px);}
+        .sugg-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.35rem;}
+        .sugg-vuln{font-size:.82rem;font-weight:600;color:#e2e8f0;}
+        .sugg-conf{font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;color:var(--green);}
+        .sugg-desc{font-size:.72rem;color:var(--text2);line-height:1.5;margin-bottom:.45rem;}
+        .sugg-tool{font-size:.68rem;background:rgba(0,255,255,.07);border:1px solid rgba(0,255,255,.18);
+            color:var(--cyan);padding:.18rem .55rem;border-radius:4px;display:inline-block;}
+
+        /* ── Quick Scan ── */
+        .scan-form{display:flex;gap:.55rem;}
+        .scan-input{
+            flex:1;background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:8px;
+            padding:.6rem .85rem;color:#fff;font-family:'Fira Code',monospace;font-size:.82rem;outline:none;
+            transition:border-color .2s,box-shadow .2s;
+        }
+        .scan-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,255,255,.08);}
+        .scan-btn{
+            background:linear-gradient(135deg,var(--cyan),var(--purple));
+            border:none;border-radius:8px;padding:.6rem 1.15rem;color:#000;
+            font-weight:700;font-size:.78rem;cursor:pointer;white-space:nowrap;transition:all .2s;
+            font-family:'Orbitron',sans-serif;letter-spacing:.5px;
+        }
+        .scan-btn:hover{transform:scale(1.04);box-shadow:0 4px 25px rgba(0,255,255,.35);}
+        .scan-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+        .scan-status{font-size:.72rem;font-family:'Fira Code',monospace;color:var(--cyan);padding:.45rem 0;min-height:1.8rem;}
+        .prog-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:.1rem;}
+        .prog-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+
+        /* ── Chart ── */
+        .chart-wrap{position:relative;height:190px;width:100%;}
+
+        /* ── Threat Timeline ── */
+        .threat-chart-wrap{position:relative;height:130px;width:100%;}
+
+        /* ── Actions grid ── */
+        .actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;}
+        .action-btn{
+            background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;
+            padding:.9rem .4rem;text-align:center;text-decoration:none;
+            transition:all .25s;display:flex;flex-direction:column;align-items:center;gap:.35rem;
+        }
+        .action-btn:hover{border-color:rgba(0,255,255,.35);background:rgba(0,255,255,.04);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+        .action-icon{font-size:1.2rem;}
+        .action-lbl{font-size:.67rem;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text2);}
+        .action-btn:hover .action-lbl{color:var(--cyan);}
+
+        /* ── GPU / System ── */
+        .gpu-row{display:flex;justify-content:space-between;align-items:center;
+            padding:.45rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.78rem;}
+        .gpu-row:last-child{border-bottom:none;}
+        .gpu-key{color:var(--text2);}
+        .gpu-val{font-family:'Fira Code',monospace;color:var(--cyan);}
+
+        /* ── Event Stream ── */
+        .event-item{
+            font-size:.72rem;font-family:'Fira Code',monospace;padding:.35rem .5rem;
+            border-left:2px solid;margin-bottom:.25rem;border-radius:0 4px 4px 0;
+            background:rgba(0,0,0,.2);animation:slideIn .2s ease;
+        }
+        @keyframes slideIn{from{opacity:0;transform:translateX(-4px);}to{opacity:1;transform:translateX(0);}}
+        .ev-info{border-color:var(--cyan);color:var(--text2);}
+        .ev-success{border-color:var(--green);color:#a7f3d0;}
+        .ev-warning{border-color:var(--yellow);color:#fde68a;}
+        .ev-error{border-color:var(--red);color:#fca5a5;}
+        .ev-time{color:var(--text3);margin-right:.4rem;}
+
+        /* ── Scan Output Panel ── */
+        .scan-output{
+            background:rgba(0,0,0,.5);border:1px solid rgba(0,255,157,.15);border-radius:8px;
+            padding:.65rem .85rem;margin-top:.6rem;max-height:120px;overflow-y:auto;display:none;
+            font-family:'Fira Code',monospace;font-size:.72rem;color:var(--green);line-height:1.6;
+        }
+        .scan-output.visible{display:block;}
+        .scan-output-line{border-bottom:1px solid rgba(0,255,157,.06);padding:.1rem 0;}
+
+        /* ── Badge pill ── */
+        .tag-pill{display:inline-block;font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:10px;font-family:'Fira Code',monospace;}
+        .tp-live{background:rgba(0,255,157,.12);color:var(--green);border:1px solid rgba(0,255,157,.25);}
+        .tp-emily{background:rgba(255,136,0,.1);color:var(--orange);border:1px solid rgba(255,136,0,.2);}
+
+        /* Responsive */
+        @media(max-width:1150px){.stat-card:nth-child(n+5){display:none;}}
+        @media(max-width:600px){
+            .actions-grid{grid-template-columns:repeat(2,1fr);}
+            nav{display:none;}
+        }
+    </style>
+</head>
+<body>
+<!-- Header -->
+<header>
+    <a class="logo" href="/">
+        <div class="logo-icon"><i class="fas fa-shield-halved"></i></div>
+        <div>
+            <div class="logo-name">SENTINEL-1</div>
+            <div class="logo-sub">NEURAL INTELLIGENCE HUB v6.5</div>
+        </div>
+    </a>
+    <nav>
+        <a class="nav-a active" href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-a" href="/scan"><i class="fas fa-search"></i> Scanner</a>
+        <a class="nav-a" href="/results"><i class="fas fa-file-alt"></i> Results</a>
+        <a class="nav-a" href="/terminal"><i class="fas fa-terminal"></i> Terminal</a>
+        <a class="nav-a" href="/history"><i class="fas fa-history"></i> History</a>
+        <a class="nav-a" href="/tools"><i class="fas fa-tools"></i> Tools</a>
+    </nav>
+    <div style="display:flex;gap:.65rem;align-items:center;">
+        <div class="user-pill">
+            <span class="status-dot"></span>
+            <div class="avatar" id="avatarInit">{{ user.username[0]|upper if user else 'A' }}</div>
+            <span style="font-size:.78rem;font-weight:600;">{{ user.username if user else 'Admin' }}</span>
+            <span style="font-size:.68rem;color:var(--text2);background:rgba(0,255,255,.08);padding:.1rem .4rem;border-radius:4px;font-family:'Fira Code',monospace;">{{ user.role if user else 'admin' }}</span>
+        </div>
+        <a class="btn-logout" href="/logout"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+</header>
+
+<main>
+    <!-- Welcome Banner -->
+    <div class="welcome">
+        <div class="welcome-left">
+            <h1>Welcome, <span>{{ user.username if user else 'Operator' }}</span></h1>
+            <p>
+                <i class="fas fa-circle" style="color:var(--green);font-size:.55rem;"></i>
+                &nbsp;SENTINEL BRAIN v6.5 ONLINE &nbsp;·&nbsp; GPU: {{ gpu_name if gpu_available else 'CPU Mode' }}
+                &nbsp;·&nbsp; <span id="clock" style="color:var(--cyan);"></span>
+            </p>
+        </div>
+        <div class="welcome-right">
+            <a href="/scan" class="quick-btn"><i class="fas fa-search"></i> New Scan</a>
+            <a href="/results" class="quick-btn"><i class="fas fa-file-alt"></i> Results</a>
+            <a href="/terminal" class="quick-btn"><i class="fas fa-terminal"></i> Terminal</a>
+            <a href="/logout" class="quick-btn danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card sc-cyan">
+            <div class="stat-icon" style="color:var(--cyan);"><i class="fas fa-search"></i></div>
+            <div class="stat-val" id="stat-scans">{{ scans_count or 0 }}</div>
+            <div class="stat-lbl">Total Scans</div>
+            <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card sc-red">
+            <div class="stat-icon" style="color:var(--red);"><i class="fas fa-bolt"></i></div>
+            <div class="stat-val" id="stat-attacks">{{ attacks_count or 0 }}</div>
+            <div class="stat-lbl">Attacks Run</div>
+            <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card sc-orange">
+            <div class="stat-icon" style="color:var(--orange);"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="stat-val" id="stat-vulns">—</div>
+            <div class="stat-lbl">Vulns Found</div>
+            <div class="stat-sub">Last scan</div>
+        </div>
+        <div class="stat-card sc-green">
+            <div class="stat-icon" style="color:var(--green);"><i class="fas fa-microchip"></i></div>
+            <div class="stat-val" id="stat-gpu" style="font-size:1.1rem;padding-top:.3rem;">—</div>
+            <div class="stat-lbl">GPU Memory</div>
+            <div class="stat-sub" id="gpu-util-sub">Live</div>
+        </div>
+        <div class="stat-card sc-purple">
+            <div class="stat-icon" style="color:var(--purple);"><i class="fas fa-shield-alt"></i></div>
+            <div class="stat-val" id="stat-risk">—</div>
+            <div class="stat-lbl">Risk Score</div>
+            <div class="stat-sub">Current</div>
+        </div>
+        <div class="stat-card sc-yellow">
+            <div class="stat-icon" style="color:var(--yellow);"><i class="fas fa-wifi"></i></div>
+            <div class="stat-val" id="stat-conn" style="font-size:.95rem;padding-top:.3rem;">● LIVE</div>
+            <div class="stat-lbl">Socket.IO</div>
+            <div class="stat-sub" id="stat-sid">Connecting...</div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+
+        <!-- Left: Neural Layers + Vuln Chart -->
+        <div style="display:flex;flex-direction:column;gap:1.1rem;">
+
+            <!-- Neural Layers -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--cyan);"><i class="fas fa-brain"></i> Neural Layer Status</span>
+                    <span class="tag-pill tp-live">LIVE</span>
+                </div>
+                <div class="card-body" style="padding:.4rem 1.1rem;">
+                    <div id="layers-list"></div>
+                </div>
+                <div class="card-footer">
+                    <span id="layer-update-time">Waiting for data...</span>
+                    <span style="color:var(--cyan);">7 Active Layers</span>
+                </div>
+            </div>
+
+            <!-- Vulnerability Distribution Chart -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--purple);"><i class="fas fa-chart-pie"></i> Vulnerability Distribution</span>
+                    <span style="font-size:.7rem;color:var(--text2);">Last scan</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap"><canvas id="vulnChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Threat Timeline -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--orange);"><i class="fas fa-chart-line"></i> Threat Activity (24h)</span>
+                    <span style="font-size:.7rem;color:var(--text2);" id="threatTotal">0 events</span>
+                </div>
+                <div class="card-body" style="padding:.75rem 1.1rem;">
+                    <div class="threat-chart-wrap"><canvas id="threatChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle: Quick Scan + Suggestions + Actions -->
+        <div style="display:flex;flex-direction:column;gap:1.1rem;">
+
+            <!-- Quick Neural Scan -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--green);"><i class="fas fa-brain"></i> Quick Neural Scan</span>
+                    <a href="/results" style="font-size:.72rem;color:var(--cyan);text-decoration:none;">Full Results →</a>
+                </div>
+                <div class="card-body">
+                    <div class="scan-form">
+                        <input class="scan-input" id="scanTarget" placeholder="https://target.com or 192.168.1.1" />
+                        <button class="scan-btn" id="scanBtn" onclick="startQuickScan()">
+                            <i class="fas fa-brain"></i> SCAN
+                        </button>
+                    </div>
+                    <div class="scan-status" id="scanStatus">⚡ Ready for neural analysis</div>
+                    <div class="prog-bar"><div class="prog-fill" id="scanProgress" style="width:0%;background:linear-gradient(90deg,var(--cyan),var(--purple));"></div></div>
+                    <div class="scan-output" id="scanOutput"></div>
+                </div>
+            </div>
+
+            <!-- AI Attack Suggestions -->
+            <div class="card" style="flex:1;">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--orange);"><i class="fas fa-lightbulb"></i> AI Attack Suggestions</span>
+                    <span class="tag-pill tp-emily">EMILY AI</span>
+                </div>
+                <div class="card-body" id="suggestionsList" style="max-height:260px;overflow-y:auto;">
+                    <div class="empty-msg" style="text-align:center;padding:1.5rem;color:var(--text2);">
+                        <i class="fas fa-brain" style="font-size:1.8rem;margin-bottom:.65rem;opacity:.25;display:block;"></i>
+                        <p style="font-size:.78rem;">Run a neural scan to receive AI-powered attack suggestions</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--yellow);"><i class="fas fa-bolt"></i> Quick Actions</span>
+                </div>
+                <div class="card-body">
+                    <div class="actions-grid">
+                        <a href="/scan" class="action-btn"><div class="action-icon" style="color:var(--cyan);"><i class="fas fa-search"></i></div><div class="action-lbl">New Scan</div></a>
+                        <a href="/terminal" class="action-btn"><div class="action-icon" style="color:var(--purple);"><i class="fas fa-terminal"></i></div><div class="action-lbl">Terminal</div></a>
+                        <a href="/results" class="action-btn"><div class="action-icon" style="color:var(--green);"><i class="fas fa-file-alt"></i></div><div class="action-lbl">Results</div></a>
+                        <a href="/history" class="action-btn"><div class="action-icon" style="color:var(--yellow);"><i class="fas fa-history"></i></div><div class="action-lbl">History</div></a>
+                        <a href="/correlation" class="action-btn"><div class="action-icon" style="color:var(--red);"><i class="fas fa-project-diagram"></i></div><div class="action-lbl">Attack Graph</div></a>
+                        <a href="/tools" class="action-btn"><div class="action-icon" style="color:var(--orange);"><i class="fas fa-tools"></i></div><div class="action-lbl">Tool Station</div></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Event Stream + Recent Activity + System -->
+        <div style="display:flex;flex-direction:column;gap:1.1rem;">
+
+            <!-- Event Stream -->
+            <div class="card" style="max-height:290px;">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--cyan);"><i class="fas fa-stream"></i> Event Stream</span>
+                    <span style="font-size:.68rem;color:var(--text2);" id="evCount">0 events</span>
+                </div>
+                <div class="card-body" id="eventStream" style="overflow-y:auto;max-height:200px;padding:.6rem .85rem;">
+                    <div class="event-item ev-info"><span class="ev-time">--:--:--</span> SYSTEM Sentinel-1 dashboard active</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card" style="flex:1;">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--text2);"><i class="fas fa-history"></i> Recent Activity</span>
+                    <a href="/history" style="font-size:.72rem;color:var(--cyan);text-decoration:none;">All →</a>
+                </div>
+                <div class="card-body" id="activityList" style="max-height:240px;overflow-y:auto;padding:.65rem 1.1rem;">
+                    {% if recent_scans %}
+                        {% for scan in recent_scans[:3] %}
+                        <div class="activity-item">
+                            <div class="act-icon" style="background:rgba(0,255,255,.1);color:var(--cyan);"><i class="fas fa-search"></i></div>
+                            <div>
+                                <div class="act-txt">{{ scan.target[:35] }}{% if scan.target|length > 35 %}…{% endif %}<span class="badge-sev sev-low">{{ scan.scan_type }}</span></div>
+                                <div class="act-time">{{ scan.timestamp.strftime('%Y-%m-%d %H:%M') if scan.timestamp else 'Just now' }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if recent_attacks %}
+                        {% for atk in recent_attacks[:3] %}
+                        <div class="activity-item">
+                            <div class="act-icon" style="background:rgba(255,49,49,.1);color:var(--red);"><i class="fas fa-bolt"></i></div>
+                            <div>
+                                <div class="act-txt">{{ atk.tool_used }} → {{ atk.target[:28] }}{% if atk.target|length > 28 %}…{% endif %}<span class="badge-sev {% if atk.success %}sev-critical{% else %}sev-medium{% endif %}">{% if atk.success %}HIT{% else %}MISS{% endif %}</span></div>
+                                <div class="act-time">{{ atk.timestamp.strftime('%Y-%m-%d %H:%M') if atk.timestamp else 'Just now' }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% if not recent_scans and not recent_attacks %}
+                    <div style="text-align:center;padding:1.5rem;color:var(--text2);">
+                        <i class="fas fa-info-circle" style="display:block;font-size:1.3rem;margin-bottom:.5rem;opacity:.25;"></i>
+                        <p style="font-size:.78rem;">No activity yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <div class="card-hd">
+                    <span class="card-title" style="color:var(--purple);"><i class="fas fa-microchip"></i> System Status</span>
+                    <button onclick="refreshMetrics()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-size:.78rem;transition:transform .3s;" id="refreshBtn"><i class="fas fa-sync-alt"></i></button>
+                </div>
+                <div class="card-body" style="padding:.65rem 1.1rem;">
+                    <div class="gpu-row"><span class="gpu-key">GPU</span><span class="gpu-val" id="gpu-name">{{ gpu_name if gpu_available else 'CPU Mode' }}</span></div>
+                    <div class="gpu-row">
+                        <span class="gpu-key">VRAM Used</span>
+                        <span class="gpu-val" id="gpu-mem">—</span>
+                    </div>
+                    <div style="margin-top:3px;"><div class="prog-bar" style="height:4px;"><div class="prog-fill" id="gpu-bar" style="width:0%;background:linear-gradient(90deg,var(--purple),var(--pink));"></div></div></div>
+                    <div class="gpu-row" style="margin-top:.4rem;"><span class="gpu-key">GPU Util</span><span class="gpu-val" id="gpu-util">—</span></div>
+                    <div class="gpu-row"><span class="gpu-key">Active Scans</span><span class="gpu-val" id="active-scans">0</span></div>
+                    <div class="gpu-row"><span class="gpu-key">Risk Score</span><span class="gpu-val" id="risk-score">—</span></div>
+                    <div class="gpu-row"><span class="gpu-key">AI Engine</span><span class="gpu-val" style="color:var(--green);">● ONLINE</span></div>
+                    <div class="gpu-row"><span class="gpu-key">Metasploit</span><span class="gpu-val" id="msf-status" style="color:var(--text2);">● Checking...</span></div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end main-grid -->
+</main>
+
+<script>
+// ── Clock ──
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString();}
+updateClock(); setInterval(updateClock,1000);
+
+// ── Neural Layers ──
+const LAYERS=[
+    {id:'cnn',   name:'CNN - Pattern',    color:'#00ffff', icon:'fa-eye',           prob:0, status:'Initializing...'},
+    {id:'gnn',   name:'GNN - Graph',      color:'#9945FF', icon:'fa-project-diagram',prob:0, status:'Initializing...'},
+    {id:'minilm',name:'MiniLM - RAG',     color:'#3b82f6', icon:'fa-book',          prob:0, status:'Initializing...'},
+    {id:'bnn',   name:'BNN - Bayesian',   color:'#ffd700', icon:'fa-balance-scale', prob:0, status:'Initializing...'},
+    {id:'gan',   name:'GAN - Payload',    color:'#00ff9d', icon:'fa-dna',           prob:0, status:'Initializing...'},
+    {id:'emily', name:'Emily AI',         color:'#ff8800', icon:'fa-brain',         prob:0, status:'Initializing...'},
+    {id:'spine', name:'SPINE - Correlate',color:'#ff66cc', icon:'fa-link',          prob:0, status:'Initializing...'},
+];
+const layerState={};
+LAYERS.forEach(l=>{layerState[l.id]=l;});
+
+function renderLayers(){
+    const el=document.getElementById('layers-list');
+    el.innerHTML=LAYERS.map(l=>`
+        <div class="layer-row">
+            <div class="layer-ico" style="background:${l.color}1a;color:${l.color};"><i class="fas ${l.icon}"></i></div>
+            <div class="layer-info">
+                <div class="layer-name-txt">${l.name}</div>
+                <div class="layer-status-txt" id="ls-${l.id}">${layerState[l.id].status}</div>
+            </div>
+            <div class="layer-right">
+                <div class="layer-pct" style="color:${l.color};" id="lp-${l.id}">${layerState[l.id].prob}%</div>
+                <div class="layer-bar-wrap"><div class="layer-bar" id="lb-${l.id}" style="width:${layerState[l.id].prob}%;background:${l.color};"></div></div>
+            </div>
+        </div>
+    `).join('');
+}
+renderLayers();
+
+function updateLayer(id,prob,status){
+    if(!layerState[id])return;
+    layerState[id].prob=prob; layerState[id].status=status||layerState[id].status;
+    const ep=document.getElementById('lp-'+id), eb=document.getElementById('lb-'+id), es=document.getElementById('ls-'+id);
+    if(ep)ep.textContent=prob+'%';
+    if(eb)eb.style.width=prob+'%';
+    if(es&&status)es.textContent=status;
+    document.getElementById('layer-update-time').textContent='Updated '+new Date().toLocaleTimeString();
+}
+
+// ── Vuln Chart ──
+let vulnChart;
+function initVulnChart(){
+    const ctx=document.getElementById('vulnChart');
+    if(!ctx)return;
+    vulnChart=new Chart(ctx,{
+        type:'doughnut',
+        data:{
+            labels:['Critical','High','Medium','Low','Info'],
+            datasets:[{data:[0,0,0,0,0],backgroundColor:['#ff3131','#ff8800','#ffd700','#00ff9d','#6b7280'],borderWidth:0,hoverOffset:8}]
+        },
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'right',labels:{color:'#9ca3af',font:{size:10},padding:10,boxWidth:10}}},
+            cutout:'68%'
+        }
+    });
+}
+initVulnChart();
+function updateVulnChart(c,h,m,l,i=0){
+    if(vulnChart){vulnChart.data.datasets[0].data=[c,h,m,l,i];vulnChart.update();}
+}
+
+// ── Threat Timeline Chart ──
+let threatChart;
+const threatData={labels:[],scans:[],attacks:[]};
+function initThreatChart(){
+    const ctx=document.getElementById('threatChart');
+    if(!ctx)return;
+    const now=new Date();
+    for(let i=11;i>=0;i--){
+        const t=new Date(now-i*7200000);
+        threatData.labels.push(t.getHours().toString().padStart(2,'0')+':00');
+        threatData.scans.push(0); threatData.attacks.push(0);
+    }
+    threatChart=new Chart(ctx,{
+        type:'bar',
+        data:{
+            labels:threatData.labels,
+            datasets:[
+                {label:'Scans',data:threatData.scans,backgroundColor:'rgba(0,255,255,.3)',borderColor:'rgba(0,255,255,.7)',borderWidth:1,borderRadius:3},
+                {label:'Attacks',data:threatData.attacks,backgroundColor:'rgba(255,49,49,.25)',borderColor:'rgba(255,49,49,.6)',borderWidth:1,borderRadius:3}
+            ]
+        },
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{labels:{color:'#6b7280',font:{size:10},boxWidth:10}}},
+            scales:{
+                x:{ticks:{color:'#374151',font:{size:9}},grid:{color:'rgba(255,255,255,.03)'}},
+                y:{ticks:{color:'#374151',font:{size:9}},grid:{color:'rgba(255,255,255,.03)'},beginAtZero:true}
+            }
+        }
+    });
+}
+initThreatChart();
+function pushThreatEvent(type){
+    if(!threatChart)return;
+    const last=threatData[type];
+    last[last.length-1]++;
+    threatChart.data.datasets[type==='scans'?0:1].data=last;
+    threatChart.update();
+    const total=threatData.scans.reduce((a,b)=>a+b,0)+threatData.attacks.reduce((a,b)=>a+b,0);
+    document.getElementById('threatTotal').textContent=total+' events';
+}
+
+// ── Events ──
+let evCount=0;
+function addEvent(type,msg,sev='info'){
+    const stream=document.getElementById('eventStream');
+    if(!stream)return;
+    const t=new Date().toLocaleTimeString();
+    const cls={info:'ev-info',success:'ev-success',warning:'ev-warning',error:'ev-error'}[sev]||'ev-info';
+    const d=document.createElement('div');
+    d.className='event-item '+cls;
+    d.innerHTML=`<span class="ev-time">${t}</span> <b>${type}</b> ${msg}`;
+    stream.prepend(d);
+    while(stream.children.length>50)stream.removeChild(stream.lastChild);
+    evCount++;
+    document.getElementById('evCount').textContent=evCount+' events';
+}
+
+// ── Scan Output ──
+function appendScanLine(line){
+    const out=document.getElementById('scanOutput');
+    out.classList.add('visible');
+    const d=document.createElement('div');
+    d.className='scan-output-line';
+    d.textContent=line;
+    out.appendChild(d);
+    out.scrollTop=out.scrollHeight;
+    if(out.children.length>50)out.removeChild(out.firstChild);
+}
+
+// ── Suggestions ──
+function addSuggestion(data){
+    const list=document.getElementById('suggestionsList');
+    const existing=list.querySelector('.empty-msg');
+    if(existing)existing.remove();
+    const conf=((data.confidence||0)*100).toFixed(0);
+    const sev=data.severity||'MEDIUM';
+    const sevColor={CRITICAL:'var(--red)',HIGH:'var(--orange)',MEDIUM:'var(--yellow)',LOW:'var(--green)'}[sev]||'var(--text2)';
+    const d=document.createElement('div');
+    d.className='sugg-item';
+    d.innerHTML=`
+        <div class="sugg-header">
+            <span class="sugg-vuln">${data.vulnerability||'Unknown Vulnerability'} <span style="color:${sevColor};font-size:.68rem;">[${sev}]</span></span>
+            <span class="sugg-conf">${conf}%</span>
+        </div>
+        <div class="sugg-desc">${data.reasoning||''}</div>
+        <span class="sugg-tool"><i class="fas fa-tools"></i> ${data.tool||'unknown'}</span>
+    `;
+    d.onclick=()=>window.location.href='/results';
+    list.prepend(d);
+    while(list.children.length>5)list.removeChild(list.lastChild);
+}
+
+// ── Quick Scan ──
+function startQuickScan(){
+    const target=document.getElementById('scanTarget').value.trim();
+    if(!target){alert('Enter a target URL or IP');return;}
+    const btn=document.getElementById('scanBtn');
+    btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+    document.getElementById('scanStatus').textContent='⚡ Initiating neural analysis...';
+    document.getElementById('scanProgress').style.width='8%';
+    document.getElementById('scanOutput').innerHTML='';
+    document.getElementById('scanOutput').classList.remove('visible');
+    addEvent('SCAN','Neural analysis started for '+target.substring(0,40),'info');
+    pushThreatEvent('scans');
+    appendScanLine('[*] Target: '+target);
+    appendScanLine('[*] Initializing 7 neural layers...');
+    fetch('/api/scan/url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:target})})
+    .then(r=>r.json())
+    .then(d=>{
+        document.getElementById('scanStatus').textContent='🧠 Processing neural layers...';
+        document.getElementById('scanProgress').style.width='25%';
+        appendScanLine('[+] Scan ID: '+(d.scan_id||'unknown'));
+        addEvent('SCAN','Scan ID: '+(d.scan_id||'unknown'),'success');
+    })
+    .catch(e=>{
+        btn.disabled=false; btn.innerHTML='<i class="fas fa-brain"></i> SCAN';
+        document.getElementById('scanStatus').textContent='❌ '+e.message;
+        document.getElementById('scanProgress').style.width='0%';
+        appendScanLine('[-] Error: '+e.message);
+        addEvent('ERROR','Scan failed: '+e.message,'error');
+    });
+}
+
+// ── Metrics ──
+function refreshMetrics(){
+    const btn=document.getElementById('refreshBtn');
+    btn.style.transform='rotate(360deg)';
+    setTimeout(()=>btn.style.transform='',300);
+    fetch('/api/status').then(r=>r.json()).then(d=>{
+        if(d.gpu_memory_mb!==undefined){
+            const mb=d.gpu_memory_mb;
+            document.getElementById('gpu-mem').textContent=mb+' MB';
+            document.getElementById('stat-gpu').textContent=mb+' MB';
+            document.getElementById('gpu-bar').style.width=Math.min(mb/8000*100,100)+'%';
+        }
+        if(d.gpu_util!==undefined){
+            document.getElementById('gpu-util').textContent=d.gpu_util+'%';
+            document.getElementById('gpu-util-sub').textContent='Util: '+d.gpu_util+'%';
+        }
+        if(d.active_scans!==undefined)document.getElementById('active-scans').textContent=d.active_scans;
+        if(d.risk_score!==undefined){
+            document.getElementById('risk-score').textContent=d.risk_score;
+            document.getElementById('stat-risk').textContent=d.risk_score;
+        }
+    }).catch(()=>{});
+}
+refreshMetrics(); setInterval(refreshMetrics,15000);
+
+// ── Socket.IO ──
+const socket=io(window.location.origin,{transports:['websocket'],reconnection:true,reconnectionDelay:2000});
+socket.on('connect',()=>{
+    document.getElementById('stat-conn').innerHTML='<span style="color:var(--green)">● LIVE</span>';
+    document.getElementById('stat-sid').textContent=socket.id?socket.id.substring(0,12)+'...':'Connected';
+    addEvent('SYSTEM','Connected to Sentinel Brain v6.5','success');
+});
+socket.on('disconnect',()=>{
+    document.getElementById('stat-conn').innerHTML='<span style="color:var(--red)">● DOWN</span>';
+    addEvent('SYSTEM','Disconnected from server','error');
+});
+socket.on('layer_update',(data)=>{
+    updateLayer(data.layer,data.probability,data.details||data.status);
+    addEvent(data.layer.toUpperCase(),'Layer: '+data.probability+'%','info');
+});
+socket.on('ai_suggestion',(data)=>{
+    addSuggestion(data);
+    addEvent('EMILY','Suggestion: '+data.vulnerability,'warning');
+    if(data.severity==='CRITICAL'||data.severity==='HIGH'){
+        const v=document.getElementById('stat-vulns');
+        if(v.textContent==='—')v.textContent='1';else v.textContent=parseInt(v.textContent||0)+1;
+    }
+});
+socket.on('scan_complete',(data)=>{
+    const btn=document.getElementById('scanBtn');
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-brain"></i> SCAN';
+    const vulns=(data&&data.vulnerabilities_found)||0;
+    document.getElementById('scanStatus').textContent='✅ Scan complete — '+vulns+' vulnerabilities found';
+    document.getElementById('scanProgress').style.width='100%';
+    document.getElementById('stat-vulns').textContent=vulns;
+    appendScanLine('[✓] Scan complete. Vulnerabilities found: '+vulns);
+    addEvent('SCAN','Scan complete: '+vulns+' vulns','success');
+    updateVulnChart((data&&data.critical)||0,(data&&data.high)||0,(data&&data.medium)||0,(data&&data.low)||0);
+    setTimeout(()=>{document.getElementById('scanProgress').style.width='0%';},2500);
+});
+socket.on('scan_progress',(data)=>{
+    if(data.message)appendScanLine(data.message);
+    if(data.pct)document.getElementById('scanProgress').style.width=data.pct+'%';
+});
+socket.on('analysis_complete',(d)=>{
+    pushThreatEvent('scans');
+    addEvent('NEURAL','Analysis done — '+d.vulnerabilities_found+' vulns, '+d.confidence+'% confidence','success');
+});
+socket.on('attack_complete',(d)=>{
+    pushThreatEvent('attacks');
+    addEvent('ATTACK','Attack finished: '+(d.success?'HIT':'MISS'),'warning');
+});
+
+document.getElementById('scanTarget').addEventListener('keydown',(e)=>{if(e.key==='Enter')startQuickScan();});
+</script>
+</body>
+</html>

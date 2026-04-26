@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sentinel-1 | Neural Scan Station v6.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00ffff;
+            --neon-purple: #9945FF;
+            --neon-green: #00ff9d;
+            --neon-red: #ff3131;
+            --neon-yellow: #ffd700;
+            --neon-orange: #ff8800;
+            --bg-dark: #02040a;
+            --panel-bg: rgba(13,17,23,0.95);
+            --glass-border: rgba(0,255,255,0.2);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background-color: var(--bg-dark);
+            color: #c9d1d9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(0,255,255,0.03) 0%, transparent 30%),
+                repeating-linear-gradient(45deg, rgba(0,255,255,0.02) 0px, rgba(0,255,255,0.02) 2px, transparent 2px, transparent 8px);
+        }
+        ::-webkit-scrollbar { width:4px; height:4px; }
+        ::-webkit-scrollbar-track { background:#1a1a1a; }
+        ::-webkit-scrollbar-thumb { background:var(--neon-blue); border-radius:2px; }
+
+        /* Layout */
+        .app-layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; transition: all 0.3s ease; }
+        
+        /* Sidebar */
+        .sidebar {
+            background:#050810; border-right:1px solid rgba(0,255,255,0.1);
+            padding:20px 0; display:flex; flex-direction:column;
+            position:sticky; top:0; height:100vh; overflow-y:auto;
+            transition: left 0.3s ease;
+        }
+        .sidebar-logo {
+            padding:0 16px 20px; border-bottom:1px solid rgba(0,255,255,0.1);
+            margin-bottom:16px;
+        }
+        .sidebar-logo h1 { font-size:18px; font-weight:800; color:var(--neon-blue); letter-spacing:2px; }
+        .sidebar-logo p  { font-size:9px; color:#4b5563; text-transform:uppercase; letter-spacing:1px; }
+        .nav-section { padding:0 8px; margin-bottom:8px; }
+        .nav-label { font-size:9px; color:#374151; text-transform:uppercase; letter-spacing:1.5px; padding:0 8px; margin-bottom:4px; }
+        .nav-item {
+            display:flex; align-items:center; gap:10px; padding:9px 12px;
+            border-radius:8px; color:#6b7280; font-size:12px; font-weight:500;
+            cursor:pointer; transition:all .2s; text-decoration:none; margin-bottom:2px;
+        }
+        .nav-item:hover { background:rgba(0,255,255,0.06); color:#9ca3af; }
+        .nav-item.active { background:rgba(0,255,255,0.1); color:var(--neon-blue); border-left:2px solid var(--neon-blue); }
+        .nav-item i { width:16px; text-align:center; font-size:12px; }
+        .nav-item .badge {
+            margin-left:auto; font-size:9px; background:rgba(0,255,255,0.15);
+            color:var(--neon-blue); padding:1px 6px; border-radius:10px; font-weight:700;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            color: white;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--neon-blue);
+            border: none;
+            font-size: 20px;
+        }
+
+        @media(max-width: 1024px) { 
+            .app-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: fixed;
+                left: -220px;
+                z-index: 1000;
+                width: 220px;
+                box-shadow: 10px 0 20px rgba(0,0,0,0.5);
+            }
+            .sidebar.active { left: 0; }
+            .mobile-nav-toggle { display: flex; }
+        }
+
+        /* Main */
+        .main-content { padding:24px; overflow-y:auto; }
+
+        /* Header */
+        .page-header {
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid rgba(0,255,255,0.1);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h1 { font-size:26px; font-weight:800; letter-spacing:2px; }
+        .page-header h1 span { color:var(--neon-blue); }
+        .page-header p { font-size:11px; color:#4b5563; text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+        /* Layer badges */
+        .layer-bar { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:20px; }
+        @media(max-width:900px){ .layer-bar{grid-template-columns:repeat(4,1fr);} }
+        @media(max-width:640px){ .layer-bar{grid-template-columns:repeat(3,1fr);} }
+        .layer-badge {
+            padding:6px 8px; border-radius:6px; font-size:9px; font-weight:700;
+            text-transform:uppercase; letter-spacing:.5px; text-align:center;
+            cursor:pointer; transition:all .2s; display:flex; flex-direction:column; align-items:center; gap:2px;
+        }
+        .layer-badge:hover { transform:translateY(-1px); filter:brightness(1.2); }
+        .layer-badge .prob { font-size:11px; font-weight:800; font-family:'Fira Code',monospace; }
+        .l1 { background:rgba(0,255,255,0.12); color:#00ffff; border:1px solid rgba(0,255,255,0.2); }
+        .l2 { background:rgba(153,69,255,0.12); color:#9945FF; border:1px solid rgba(153,69,255,0.2); }
+        .l3 { background:rgba(49,49,255,0.12); color:#6688ff; border:1px solid rgba(49,49,255,0.2); }
+        .l4 { background:rgba(255,193,7,0.12); color:#ffc107; border:1px solid rgba(255,193,7,0.2); }
+        .l5 { background:rgba(0,255,157,0.12); color:#00ff9d; border:1px solid rgba(0,255,157,0.2); }
+        .l6 { background:rgba(255,49,49,0.12); color:#ff3131; border:1px solid rgba(255,49,49,0.2); }
+        .l7 { background:rgba(255,136,0,0.12); color:#ff8800; border:1px solid rgba(255,136,0,0.2); }
+
+        /* Cyber panel */
+        .cyber-panel {
+            background:var(--panel-bg); border:1px solid var(--glass-border);
+            border-radius:12px; backdrop-filter:blur(10px);
+            transition:all .3s; position:relative; overflow:hidden;
+        }
+        .cyber-panel:hover { border-color:rgba(0,255,255,0.35); box-shadow:0 0 20px rgba(0,255,255,0.08); }
+        .panel-header {
+            padding:14px 20px; border-bottom:1px solid rgba(0,255,255,0.1);
+            display:flex; justify-content:space-between; align-items:center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .panel-title { font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#00ffff; display:flex; align-items:center; gap:8px; }
+
+        /* Target input */
+        .target-row { display:flex; gap:10px; flex-wrap: wrap; }
+        .target-input {
+            flex:1; background:#0a0e1a; border:1px solid #1f2937; border-radius:8px;
+            padding:12px 16px; color:#e2e8f0; font-family:'Fira Code',monospace; font-size:13px;
+            outline:none; transition:border-color .2s;
+        }
+        .target-input:focus { border-color:var(--neon-blue); box-shadow:0 0 0 2px rgba(0,255,255,0.08); }
+        .scan-btn {
+            padding:12px 28px; border:none; border-radius:8px; cursor:pointer;
+            font-weight:700; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+            color:#fff; background:linear-gradient(135deg,#0891b2,#7c3aed);
+            transition:all .2s; display:flex; align-items:center; gap:8px; white-space:nowrap;
+        }
+        .scan-btn:hover { filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,255,255,0.2); }
+        .scan-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+        /* Scan type selector */
+        .scan-type-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+        @media(max-width:600px){ .scan-type-grid{grid-template-columns:repeat(2,1fr);} }
+        .scan-type-btn {
+            padding:10px; border-radius:8px; border:1px solid #1f2937;
+            background:#0a0e1a; color:#6b7280; font-size:10px; font-weight:600;
+            text-transform:uppercase; letter-spacing:.8px; cursor:pointer; transition:all .2s;
+            display:flex; flex-direction:column; align-items:center; gap:4px;
+        }
+        .scan-type-btn:hover { border-color:rgba(0,255,255,0.3); color:#9ca3af; }
+        .scan-type-btn.selected { background:rgba(0,255,255,0.1); border-color:var(--neon-blue); color:var(--neon-blue); }
+        .scan-type-btn i { font-size:16px; }
+
+        /* Tool station tabs */
+        .ts-tabs-bar { display:flex; gap:2px; overflow-x:auto; padding-bottom:0; scrollbar-width:thin; border-bottom:2px solid #1f2937; }
+        .ts-tab {
+            flex-shrink:0; display:flex; align-items:center; gap:6px;
+            padding:9px 14px; font-size:11px; font-weight:600; letter-spacing:.4px;
+            cursor:pointer; border-radius:8px 8px 0 0; border:1px solid transparent;
+            border-bottom:none; background:rgba(0,0,0,0.4); color:#6b7280;
+            transition:all .2s; white-space:nowrap;
+        }
+        .ts-tab:hover { background:rgba(0,255,255,0.06); color:#9ca3af; }
+        .ts-tab.active { background:var(--panel-bg); color:var(--neon-blue); border-color:rgba(0,255,255,0.2); box-shadow:0 -2px 12px rgba(0,255,255,0.1); }
+        .ts-tab .ts-dot { width:5px; height:5px; border-radius:50%; background:#374151; flex-shrink:0; }
+        .ts-tab.active .ts-dot { background:var(--neon-blue); box-shadow:0 0 5px var(--neon-blue); animation:dot-blink 2s infinite; }
+        @keyframes dot-blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        .ts-panel { display:none; }
+        .ts-panel.active { display:grid; grid-template-columns:320px 1fr; min-height:480px; }
+        @media(max-width:900px){ .ts-panel.active{grid-template-columns:1fr;} }
+
+        .ts-config { background:#05080f; border-right:1px solid #1a2035; padding:18px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; max-height:540px; }
+        .ts-config-title { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#4b5563; padding-bottom:8px; border-bottom:1px solid #111827; display:flex; align-items:center; gap:6px; }
+        .ts-field { display:flex; flex-direction:column; gap:4px; }
+        .ts-field label { font-size:9px; font-weight:700; letter-spacing:.8px; color:#6b7280; text-transform:uppercase; }
+        .ts-input, .ts-select, .ts-textarea {
+            background:#0a0e1a; border:1px solid #1f2937; border-radius:6px;
+            color:#e2e8f0; font-family:'Fira Code',monospace; font-size:11px; padding:8px 10px;
+            outline:none; transition:border-color .2s; width:100%;
+        }
+        .ts-input:focus, .ts-select:focus, .ts-textarea:focus { border-color:rgba(0,255,255,0.4); }
+        .ts-textarea { resize:vertical; min-height:55px; }
+        .ts-select { cursor:pointer; }
+        .ts-run-btn {
+            padding:10px; border:none; border-radius:8px; cursor:pointer;
+            font-weight:700; font-size:11px; letter-spacing:.8px; text-transform:uppercase;
+            color:#fff; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:6px;
+        }
+        .ts-run-btn:hover { transform:translateY(-1px); filter:brightness(1.15); }
+        .ts-run-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+        .ts-output { background:#030508; display:flex; flex-direction:column; }
+        .ts-output-header { padding:10px 14px; border-bottom:1px solid #0f172a; display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); flex-wrap: wrap; gap: 8px; }
+        .ts-output-title { font-size:10px; font-weight:700; color:#4b5563; letter-spacing:.8px; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+        .ts-status { font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:2px 8px; border-radius:4px; background:#0f172a; color:#4b5563; border:1px solid #1f2937; transition:all .3s; }
+        .ts-status.running { background:rgba(0,255,255,0.1); color:var(--neon-blue); border-color:rgba(0,255,255,0.3); animation:dot-blink 1.5s infinite; }
+        .ts-status.done    { background:rgba(0,255,157,0.1); color:var(--neon-green); border-color:rgba(0,255,157,0.3); }
+        .ts-status.error   { background:rgba(255,49,49,0.1); color:var(--neon-red); border-color:rgba(255,49,49,0.3); }
+
+        .ts-terminal {
+            flex:1; padding:14px 16px; font-family:'Fira Code',monospace; font-size:11px;
+            color:#a1efb7; overflow-y:auto; min-height:380px; max-height:480px; line-height:1.7; word-break:break-all;
+        }
+        .t-dim  { color:#374151; }
+        .t-ok   { color:#00ff9d; }
+        .t-warn { color:#ffd700; }
+        .t-err  { color:#ff3131; }
+        .t-info { color:#00ffff; }
+        .t-cmd  { color:#9945FF; }
+        .t-hit  { color:#ff8800; font-weight:700; background:rgba(255,136,0,0.1); padding:0 4px; border-radius:3px; }
+        .t-crit { color:#ff3131; font-weight:700; background:rgba(255,49,49,0.1); padding:0 4px; border-radius:3px; }
+
+        /* Progress */
+        .progress-track { background:#111827; border-radius:4px; height:6px; overflow:hidden; }
+        .progress-fill { height:100%; border-radius:4px; transition:width .4s ease; background:linear-gradient(90deg,#00ffff,#9945ff); }
+
+        /* Severity badges */
+        .sev { font-size:9px; font-weight:700; letter-spacing:1px; padding:2px 7px; border-radius:3px; text-transform:uppercase; }
+        .sev-crit { background:rgba(255,49,49,0.15); color:#ff3131; border:1px solid rgba(255,49,49,0.3); }
+        .sev-high { background:rgba(255,136,0,0.15); color:#ff8800; border:1px solid rgba(255,136,0,0.3); }
+        .sev-med  { background:rgba(255,193,7,0.15); color:#ffd700; border:1px solid rgba(255,193,7,0.3); }
+        .sev-low  { background:rgba(0,255,157,0.15); color:#00ff9d; border:1px solid rgba(0,255,157,0.3); }
+
+        /* Vuln cards */
+        .vuln-card { background:#080c15; border:1px solid #1a2035; border-radius:8px; padding:12px; margin-bottom:8px; }
+        .vuln-card:hover { border-color:rgba(0,255,255,0.2); }
+
+        /* Stats row */
+        .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+        @media(max-width:700px){ .stats-row{grid-template-columns:repeat(2,1fr);} }
+        .stat-card { background:var(--panel-bg); border:1px solid #1a2035; border-radius:10px; padding:14px; text-align:center; }
+        .stat-card .val { font-size:28px; font-weight:800; font-family:'Fira Code',monospace; }
+        .stat-card .lbl { font-size:9px; color:#4b5563; text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+        /* Event log */
+        .event-log { height:200px; overflow-y:auto; font-family:'Fira Code',monospace; font-size:10px; padding:10px; background:#030508; border-radius:0 0 10px 10px; }
+        .event-entry { padding:3px 0; border-bottom:1px solid #0f172a; display:flex; gap:8px; flex-wrap: wrap; }
+        .event-time { color:#374151; flex-shrink:0; }
+        .event-info { color:#00ffff; }
+        .event-success { color:#00ff9d; }
+        .event-error { color:#ff3131; }
+        .event-warn { color:#ffd700; }
+
+        /* Pulse dot */
+        .pulse-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--neon-green); animation:pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+        /* Checkbox row */
+        .chk-row { display:flex; flex-wrap:wrap; gap:8px; }
+        .chk-item { display:flex; align-items:center; gap:5px; font-size:10px; color:#9ca3af; cursor:pointer; }
+        .chk-item input { accent-color:var(--neon-blue); width:12px; height:12px; }
+
+        .glitch-text { text-shadow:2px 0 var(--neon-red),-2px 0 var(--neon-blue); animation:glitch 3s infinite; }
+        @keyframes glitch { 0%,100%{transform:none;opacity:1} 92%{transform:none} 93%{transform:skew(2deg)} 94%{transform:skew(-2deg)} 95%{transform:skew(0)} }
+    </style>
+</head>
+<body>
+    <div class="mobile-nav-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </div>
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <h1>SENTINEL-1</h1>
+                <p>Neural Intelligence Hub v6.5</p>
+            </div>
+            <div class="nav-section">
+                <div class="nav-label">Navigation</div>
+                <a href="/dashboard" class="nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="/scan" class="nav-item active"><i class="fas fa-radar"></i> Scan Station <span class="badge">LIVE</span></a>
+                <a href="/results" class="nav-item"><i class="fas fa-chart-bar"></i> Results</a>
+                <a href="/terminal" class="nav-item"><i class="fas fa-terminal"></i> AI Terminal</a>
+                <a href="/tools-page" class="nav-item"><i class="fas fa-tools"></i> Tools</a>
+                <a href="/burp-testing" class="nav-item"><i class="fas fa-bug"></i> Burp Testing</a>
+                <a href="/correlation" class="nav-item"><i class="fas fa-spider"></i> Correlation</a>
+                <a href="/history" class="nav-item"><i class="fas fa-history"></i> History</a>
+                <a href="/admin" class="nav-item"><i class="fas fa-user-shield"></i> Admin</a>
+            </div>
+            <div class="nav-section" style="margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,255,255,0.08);">
+                <div class="nav-label">System</div>
+                <div class="nav-item" style="cursor:default;">
+                    <i class="fas fa-circle text-green-400" style="font-size:8px;"></i>
+                    <span id="sideConnStatus">Connected</span>
+                </div>
+                <div class="nav-item" style="cursor:default;">
+                    <i class="fas fa-microchip text-purple-400"></i>
+                    <span id="sideGpuStatus">GPU: Checking...</span>
+                </div>
+                <a href="/logout" class="nav-item" style="color:#6b7280;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN ===== -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="page-header">
+                <div>
+                    <h1 class="glitch-text">SCAN <span>STATION</span></h1>
+                    <p>7-Layer Neural Reconnaissance &amp; Vulnerability Analysis</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="pulse-dot"></span>
+                    <span style="font-size:11px;color:#00ff9d;font-family:'Fira Code',monospace;">BRAIN ONLINE</span>
+                    <span style="color:#1f2937;">|</span>
+                    <span style="font-size:11px;color:#4b5563;" id="headerUsername">OPERATOR</span>
+                </div>
+            </div>
+
+            <!-- Layer Status Bar -->
+            <div class="layer-bar mb-5">
+                <div class="layer-badge l1"><i class="fas fa-eye" style="font-size:10px;"></i><span class="prob" id="l1p">85%</span><span>CNN</span></div>
+                <div class="layer-badge l2"><i class="fas fa-project-diagram" style="font-size:10px;"></i><span class="prob" id="l2p">70%</span><span>GNN</span></div>
+                <div class="layer-badge l3"><i class="fas fa-language" style="font-size:10px;"></i><span class="prob" id="l3p">60%</span><span>MiniLM</span></div>
+                <div class="layer-badge l4"><i class="fas fa-chart-line" style="font-size:10px;"></i><span class="prob" id="l4p">50%</span><span>BNN</span></div>
+                <div class="layer-badge l5"><i class="fas fa-dice-d6" style="font-size:10px;"></i><span class="prob" id="l5p">40%</span><span>GAN</span></div>
+                <div class="layer-badge l6"><i class="fas fa-brain" style="font-size:10px;"></i><span class="prob" id="l6p">90%</span><span>EMILY</span></div>
+                <div class="layer-badge l7"><i class="fas fa-spider" style="font-size:10px;"></i><span class="prob" id="l7p">75%</span><span>SPINE</span></div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="val" id="statScans" style="color:#00ffff;">0</div>
+                    <div class="lbl">Scans Run</div>
+                </div>
+                <div class="stat-card">
+                    <div class="val" id="statVulns" style="color:#ff3131;">0</div>
+                    <div class="lbl">Vulns Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="val" id="statCrit" style="color:#ff8800;">0</div>
+                    <div class="lbl">Critical</div>
+                </div>
+                <div class="stat-card">
+                    <div class="val" id="statConf" style="color:#00ff9d;">—</div>
+                    <div class="lbl">AI Confidence</div>
+                </div>
+            </div>
+
+            <!-- Target + Scan Type -->
+            <div class="cyber-panel mb-5">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-bullseye"></i> TARGET CONFIGURATION</div>
+                    <div id="scanStatusBadge" class="ts-status">IDLE</div>
+                </div>
+                <div style="padding:20px;">
+                    <div class="ts-field mb-4">
+                        <label>Target URL / IP / Domain</label>
+                        <div class="target-row mt-1">
+                            <input type="text" id="urlInput" class="target-input" placeholder="https://target.com  or  192.168.1.1" value="">
+                            <button id="neuralScanBtn" class="scan-btn" onclick="startNeuralScan()">
+                                <i class="fas fa-brain"></i> NEURAL SCAN
+                            </button>
+                        </div>
+                        <div id="targetDisplay" style="font-size:11px;color:#00ffff;margin-top:8px;font-family:'Fira Code',monospace;">
+                            ⚡ Ready for neural analysis
+                        </div>
+                    </div>
+
+                    <div class="ts-field mb-4">
+                        <label>Scan Profile</label>
+                        <div class="scan-type-grid mt-1">
+                            <button class="scan-type-btn selected" data-type="quick" onclick="selectScanType(this,'quick')">
+                                <i class="fas fa-bolt"></i> Quick
+                            </button>
+                            <button class="scan-type-btn" data-type="full" onclick="selectScanType(this,'full')">
+                                <i class="fas fa-search"></i> Full
+                            </button>
+                            <button class="scan-type-btn" data-type="stealth" onclick="selectScanType(this,'stealth')">
+                                <i class="fas fa-user-secret"></i> Stealth
+                            </button>
+                            <button class="scan-type-btn" data-type="aggressive" onclick="selectScanType(this,'aggressive')">
+                                <i class="fas fa-fire"></i> Aggressive
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress -->
+                    <div id="progressSection" style="display:none;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <span style="font-size:10px;color:#6b7280;" id="progressMsg">Initializing...</span>
+                            <span style="font-size:10px;font-family:'Fira Code',monospace;color:#00ffff;" id="progressPct">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progressBar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TOOL STATION ===== -->
+            <div class="cyber-panel mb-5">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-toolbox"></i> TOOL STATION — Individual Tool Control</div>
+                    <span style="font-size:10px;color:#4b5563;">Select a tool tab then configure &amp; execute</span>
+                </div>
+
+                <!-- Tabs -->
+                <div class="ts-tabs-bar" id="toolTabs">
+                    <div class="ts-tab active" onclick="switchTab('nmap',this)"><span class="ts-dot"></span><i class="fas fa-network-wired" style="font-size:10px;"></i> Nmap</div>
+                    <div class="ts-tab" onclick="switchTab('nikto',this)"><span class="ts-dot"></span><i class="fas fa-globe" style="font-size:10px;"></i> Nikto</div>
+                    <div class="ts-tab" onclick="switchTab('sqlmap',this)"><span class="ts-dot"></span><i class="fas fa-database" style="font-size:10px;"></i> SQLMap</div>
+                    <div class="ts-tab" onclick="switchTab('gobuster',this)"><span class="ts-dot"></span><i class="fas fa-folder-open" style="font-size:10px;"></i> Gobuster</div>
+                    <div class="ts-tab" onclick="switchTab('hydra',this)"><span class="ts-dot"></span><i class="fas fa-key" style="font-size:10px;"></i> Hydra</div>
+                    <div class="ts-tab" onclick="switchTab('metasploit',this)"><span class="ts-dot"></span><i class="fas fa-skull-crossbones" style="font-size:10px;"></i> Metasploit</div>
+                    <div class="ts-tab" onclick="switchTab('wpscan',this)"><span class="ts-dot"></span><i class="fab fa-wordpress" style="font-size:10px;"></i> WPScan</div>
+                    <div class="ts-tab" onclick="switchTab('hashcat',this)"><span class="ts-dot"></span><i class="fas fa-lock-open" style="font-size:10px;"></i> Hashcat</div>
+                    <div class="ts-tab" onclick="switchTab('burp',this)"><span class="ts-dot"></span><i class="fas fa-bug" style="font-size:10px;"></i> Burp</div>
+                    <div class="ts-tab" onclick="switchTab('bloodhound',this)"><span class="ts-dot"></span><i class="fas fa-sitemap" style="font-size:10px;"></i> BloodHound</div>
+                    <div class="ts-tab" onclick="switchTab('wireshark',this)"><span class="ts-dot"></span><i class="fas fa-wave-square" style="font-size:10px;"></i> Wireshark</div>
+                    <div class="ts-tab" onclick="switchTab('john',this)"><span class="ts-dot"></span><i class="fas fa-hammer" style="font-size:10px;"></i> John</div>
+                </div>
+
+                <!-- NMAP -->
+                <div class="ts-panel active" id="panel-nmap">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-network-wired" style="color:#00ffff;"></i> NMAP — Port & Service Scanner</div>
+                        <div class="ts-field"><label>Target</label><input class="ts-input" id="nmap-target" placeholder="192.168.1.1 or target.com"></div>
+                        <div class="ts-field"><label>Scan Options</label>
+                            <select class="ts-select" id="nmap-opts">
+                                <option value="-sV">-sV  Version Detection</option>
+                                <option value="-sV -sC">-sV -sC  Version + Scripts</option>
+                                <option value="-sV -p-">-sV -p-  All Ports</option>
+                                <option value="-A">-A  Aggressive</option>
+                                <option value="-sS">-sS  SYN Stealth</option>
+                                <option value="-sU">-sU  UDP Scan</option>
+                                <option value="-O">-O  OS Detection</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Additional Args</label><input class="ts-input" id="nmap-args" placeholder="e.g. --script vuln"></div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="nmap-os"> OS Detect</label>
+                            <label class="chk-item"><input type="checkbox" id="nmap-scripts" checked> Scripts</label>
+                            <label class="chk-item"><input type="checkbox" id="nmap-timing"> Fast (-T4)</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-nmap" style="background:linear-gradient(135deg,#0891b2,#0e7490);" onclick="runTool('nmap')">
+                            <i class="fas fa-play"></i> RUN NMAP
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> NMAP OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-nmap">IDLE</span>
+                                <button onclick="clearOutput('nmap')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                                <button onclick="downloadJSON()" style="font-size:9px;color:#00ffff;background:rgba(0,255,255,0.08);border:1px solid rgba(0,255,255,0.2);padding:3px 8px;border-radius:4px;cursor:pointer;"><i class="fas fa-code" style="margin-right:3px;"></i>JSON</button>
+                                <button onclick="downloadCSV()" style="font-size:9px;color:#00ff9d;background:rgba(0,255,157,0.08);border:1px solid rgba(0,255,157,0.2);padding:3px 8px;border-radius:4px;cursor:pointer;"><i class="fas fa-table" style="margin-right:3px;"></i>CSV</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-nmap"><span class="t-dim">$ nmap ready — enter target and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- NIKTO -->
+                <div class="ts-panel" id="panel-nikto">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-globe" style="color:#9945FF;"></i> NIKTO — Web Vulnerability Scanner</div>
+                        <div class="ts-field"><label>Target URL</label><input class="ts-input" id="nikto-target" placeholder="http://target.com"></div>
+                        <div class="ts-field"><label>Scan Mode</label>
+                            <select class="ts-select" id="nikto-mode">
+                                <option value="-h">Standard (-h)</option>
+                                <option value="-h -C all">Full Plugin Scan (-C all)</option>
+                                <option value="-h -Tuning 1">SQL Injection Focus</option>
+                                <option value="-h -Tuning 2">File Upload Focus</option>
+                                <option value="-h -Tuning 9">SQL Injection (Nikto style)</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Port</label><input class="ts-input" id="nikto-port" placeholder="80" value="80"></div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="nikto-ssl"> Force SSL</label>
+                            <label class="chk-item"><input type="checkbox" id="nikto-nossl"> No SSL Check</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-nikto" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);" onclick="runTool('nikto')">
+                            <i class="fas fa-play"></i> RUN NIKTO
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> NIKTO OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-nikto">IDLE</span>
+                                <button onclick="clearOutput('nikto')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-nikto"><span class="t-dim">$ nikto ready — enter target URL and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- SQLMAP -->
+                <div class="ts-panel" id="panel-sqlmap">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-database" style="color:#ffd700;"></i> SQLMAP — SQL Injection Tester</div>
+                        <div class="ts-field"><label>Target URL (with parameter)</label><input class="ts-input" id="sqlmap-target" placeholder="http://target.com/page.php?id=1"></div>
+                        <div class="ts-field"><label>Risk Level</label>
+                            <select class="ts-select" id="sqlmap-risk">
+                                <option value="1">1 — Low (Safe)</option>
+                                <option value="2" selected>2 — Medium</option>
+                                <option value="3">3 — High (Aggressive)</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Test Level</label>
+                            <select class="ts-select" id="sqlmap-level">
+                                <option value="1">1 — Basic</option>
+                                <option value="2">2 — Standard</option>
+                                <option value="3" selected>3 — Extended</option>
+                                <option value="5">5 — Maximum</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Database Type</label>
+                            <select class="ts-select" id="sqlmap-dbms">
+                                <option value="">Auto-detect</option>
+                                <option value="mysql">MySQL</option>
+                                <option value="postgres">PostgreSQL</option>
+                                <option value="mssql">MSSQL</option>
+                                <option value="oracle">Oracle</option>
+                            </select>
+                        </div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="sqlmap-dbs" checked> Enumerate DBs</label>
+                            <label class="chk-item"><input type="checkbox" id="sqlmap-batch" checked> Batch Mode</label>
+                            <label class="chk-item"><input type="checkbox" id="sqlmap-dump"> Dump Data</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-sqlmap" style="background:linear-gradient(135deg,#b45309,#92400e);" onclick="runTool('sqlmap')">
+                            <i class="fas fa-play"></i> RUN SQLMAP
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> SQLMAP OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-sqlmap">IDLE</span>
+                                <button onclick="clearOutput('sqlmap')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-sqlmap"><span class="t-dim">$ sqlmap ready — enter vulnerable URL and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- GOBUSTER -->
+                <div class="ts-panel" id="panel-gobuster">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-folder-open" style="color:#00ff9d;"></i> GOBUSTER — Directory Brute-Force</div>
+                        <div class="ts-field"><label>Target URL</label><input class="ts-input" id="gobuster-target" placeholder="http://target.com"></div>
+                        <div class="ts-field"><label>Wordlist</label>
+                            <select class="ts-select" id="gobuster-wordlist">
+                                <option value="/usr/share/wordlists/dirb/common.txt">Common (dirb)</option>
+                                <option value="/usr/share/wordlists/dirb/big.txt">Big (dirb)</option>
+                                <option value="/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt">Medium (SecLists)</option>
+                                <option value="/usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt">Large (Raft)</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>File Extensions</label><input class="ts-input" id="gobuster-ext" placeholder="php,html,txt,js" value="php,html,txt"></div>
+                        <div class="ts-field"><label>Threads</label><input class="ts-input" id="gobuster-threads" type="number" value="50" min="1" max="200"></div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="gobuster-follow"> Follow Redirects</label>
+                            <label class="chk-item"><input type="checkbox" id="gobuster-noerr" checked> Hide Errors</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-gobuster" style="background:linear-gradient(135deg,#065f46,#047857);" onclick="runTool('gobuster')">
+                            <i class="fas fa-play"></i> RUN GOBUSTER
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> GOBUSTER OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-gobuster">IDLE</span>
+                                <button onclick="clearOutput('gobuster')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-gobuster"><span class="t-dim">$ gobuster ready — enter target URL and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- HYDRA -->
+                <div class="ts-panel" id="panel-hydra">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-key" style="color:#ff8800;"></i> HYDRA — Credential Brute-Force</div>
+                        <div class="ts-field"><label>Target</label><input class="ts-input" id="hydra-target" placeholder="192.168.1.1 or target.com"></div>
+                        <div class="ts-field"><label>Service</label>
+                            <select class="ts-select" id="hydra-service">
+                                <option value="ssh">SSH (port 22)</option>
+                                <option value="ftp">FTP (port 21)</option>
+                                <option value="http-post-form">HTTP Form</option>
+                                <option value="rdp">RDP (port 3389)</option>
+                                <option value="mysql">MySQL (port 3306)</option>
+                                <option value="smb">SMB (port 445)</option>
+                                <option value="telnet">Telnet</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Username / List</label><input class="ts-input" id="hydra-user" placeholder="admin  or  /path/userlist.txt"></div>
+                        <div class="ts-field"><label>Password Wordlist</label>
+                            <select class="ts-select" id="hydra-wordlist">
+                                <option value="/usr/share/wordlists/rockyou.txt">RockYou</option>
+                                <option value="/usr/share/wordlists/fasttrack.txt">FastTrack</option>
+                                <option value="/usr/share/seclists/Passwords/top-passwords-shortlist.txt">Top Passwords</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Threads</label><input class="ts-input" id="hydra-threads" type="number" value="16" min="1" max="64"></div>
+                        <button class="ts-run-btn" id="btn-hydra" style="background:linear-gradient(135deg,#991b1b,#7f1d1d);" onclick="runTool('hydra')">
+                            <i class="fas fa-play"></i> RUN HYDRA
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> HYDRA OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-hydra">IDLE</span>
+                                <button onclick="clearOutput('hydra')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-hydra"><span class="t-dim">$ hydra ready — set target and service then click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- METASPLOIT -->
+                <div class="ts-panel" id="panel-metasploit">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-skull-crossbones" style="color:#ff3131;"></i> METASPLOIT — Exploit Framework</div>
+                        <div class="ts-field"><label>Target Host</label><input class="ts-input" id="msf-target" placeholder="192.168.1.1"></div>
+                        <div class="ts-field"><label>Exploit Module</label>
+                            <select class="ts-select" id="msf-exploit">
+                                <option value="apache">exploit/multi/http/apache_normalization</option>
+                                <option value="eternalblue">exploit/windows/smb/ms17_010_eternalblue</option>
+                                <option value="log4shell">exploit/multi/http/log4shell_header_injection</option>
+                                <option value="bluekeep">exploit/windows/rdp/cve_2019_0708_bluekeep_rce</option>
+                                <option value="shellshock">exploit/multi/http/apache_mod_cgi_bash_env_exec</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Payload</label>
+                            <select class="ts-select" id="msf-payload">
+                                <option value="linux/x64/meterpreter/reverse_tcp">Linux x64 Meterpreter</option>
+                                <option value="windows/x64/meterpreter/reverse_tcp">Windows x64 Meterpreter</option>
+                                <option value="cmd/unix/reverse_bash">Unix Reverse Bash</option>
+                                <option value="php/meterpreter/reverse_tcp">PHP Meterpreter</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>LHOST (Attacker IP)</label><input class="ts-input" id="msf-lhost" placeholder="192.168.1.100"></div>
+                        <div class="ts-field"><label>LPORT</label><input class="ts-input" id="msf-lport" value="4444"></div>
+                        <button class="ts-run-btn" id="btn-metasploit" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);" onclick="runTool('metasploit')">
+                            <i class="fas fa-play"></i> LAUNCH EXPLOIT
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> METASPLOIT OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-metasploit">IDLE</span>
+                                <button onclick="clearOutput('metasploit')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-metasploit"><span class="t-dim">$ msf6 > ready — configure exploit and click LAUNCH</span></div>
+                    </div>
+                </div>
+
+                <!-- WPSCAN -->
+                <div class="ts-panel" id="panel-wpscan">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fab fa-wordpress" style="color:#00ffff;"></i> WPSCAN — WordPress Scanner</div>
+                        <div class="ts-field"><label>WordPress URL</label><input class="ts-input" id="wpscan-target" placeholder="http://wordpress-site.com"></div>
+                        <div class="ts-field"><label>Enumerate</label>
+                            <select class="ts-select" id="wpscan-enum">
+                                <option value="vp">Vulnerable Plugins</option>
+                                <option value="ap">All Plugins</option>
+                                <option value="vt">Vulnerable Themes</option>
+                                <option value="u">Users</option>
+                                <option value="vp,u">Plugins + Users</option>
+                                <option value="ap,at,u">Full Scan</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Detection Mode</label>
+                            <select class="ts-select" id="wpscan-mode">
+                                <option value="passive">Passive</option>
+                                <option value="aggressive" selected>Aggressive</option>
+                                <option value="mixed">Mixed</option>
+                            </select>
+                        </div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="wpscan-force"> Force Scan</label>
+                            <label class="chk-item"><input type="checkbox" id="wpscan-update"> Update DB</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-wpscan" style="background:linear-gradient(135deg,#1d4ed8,#1e40af);" onclick="runTool('wpscan')">
+                            <i class="fas fa-play"></i> RUN WPSCAN
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> WPSCAN OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-wpscan">IDLE</span>
+                                <button onclick="clearOutput('wpscan')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-wpscan"><span class="t-dim">$ wpscan ready — enter WordPress URL and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- HASHCAT -->
+                <div class="ts-panel" id="panel-hashcat">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-lock-open" style="color:#ffd700;"></i> HASHCAT — GPU Hash Cracker</div>
+                        <div class="ts-field"><label>Hash Value</label><textarea class="ts-textarea" id="hashcat-hash" placeholder="5f4dcc3b5aa765d61d8327deb882cf99" rows="3"></textarea></div>
+                        <div class="ts-field"><label>Hash Type</label>
+                            <select class="ts-select" id="hashcat-type">
+                                <option value="0">0 — MD5</option>
+                                <option value="100">100 — SHA1</option>
+                                <option value="1400">1400 — SHA256</option>
+                                <option value="1700">1700 — SHA512</option>
+                                <option value="1000">1000 — NTLM</option>
+                                <option value="3200">3200 — bcrypt</option>
+                                <option value="1800">1800 — sha512crypt</option>
+                                <option value="500">500 — md5crypt</option>
+                                <option value="5600">5600 — NetNTLMv2</option>
+                                <option value="13100">13100 — Kerberos TGS</option>
+                                <option value="2500">2500 — WPA/WPA2</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Attack Mode</label>
+                            <select class="ts-select" id="hashcat-mode">
+                                <option value="0">0 — Dictionary</option>
+                                <option value="1">1 — Combination</option>
+                                <option value="3">3 — Brute-force</option>
+                                <option value="6">6 — Hybrid (wordlist+mask)</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Wordlist</label>
+                            <select class="ts-select" id="hashcat-wordlist">
+                                <option value="/usr/share/wordlists/rockyou.txt">RockYou</option>
+                                <option value="/usr/share/wordlists/fasttrack.txt">FastTrack</option>
+                                <option value="/usr/share/seclists/Passwords/xato-net-10-million-passwords.txt">XatoNet 10M</option>
+                            </select>
+                        </div>
+                        <div class="ts-field" id="hashcat-mask-field" style="display:none;">
+                            <label>Mask (brute-force)</label><input class="ts-input" id="hashcat-mask" placeholder="?a?a?a?a?a?a?a?a">
+                        </div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="hashcat-show"> --show (cracked)</label>
+                            <label class="chk-item"><input type="checkbox" id="hashcat-force" checked> --force</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-hashcat" style="background:linear-gradient(135deg,#78350f,#92400e);" onclick="runTool('hashcat')">
+                            <i class="fas fa-play"></i> CRACK HASH
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> HASHCAT OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-hashcat">IDLE</span>
+                                <button onclick="clearOutput('hashcat')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-hashcat"><span class="t-dim">$ hashcat ready — paste hash and click CRACK HASH</span></div>
+                    </div>
+                </div>
+
+                <!-- BURP -->
+                <div class="ts-panel" id="panel-burp">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-bug" style="color:#ff8800;"></i> BURP SUITE — Web App Scanner</div>
+                        <div class="ts-field"><label>Target URL</label><input class="ts-input" id="burp-target" placeholder="http://target.com"></div>
+                        <div class="ts-field"><label>Scan Type</label>
+                            <select class="ts-select" id="burp-type">
+                                <option value="active">Active Scan (full)</option>
+                                <option value="passive">Passive Only</option>
+                                <option value="api">API Scan</option>
+                            </select>
+                        </div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="burp-sqli" checked> SQLi</label>
+                            <label class="chk-item"><input type="checkbox" id="burp-xss" checked> XSS</label>
+                            <label class="chk-item"><input type="checkbox" id="burp-csrf" checked> CSRF</label>
+                            <label class="chk-item"><input type="checkbox" id="burp-path" checked> Path Traversal</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-burp" style="background:linear-gradient(135deg,#c2410c,#ea580c);" onclick="runTool('burp')">
+                            <i class="fas fa-play"></i> RUN BURP SCAN
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> BURP OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-burp">IDLE</span>
+                                <button onclick="clearOutput('burp')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-burp"><span class="t-dim">$ burpsuite ready — enter target URL and click RUN</span></div>
+                    </div>
+                </div>
+
+                <!-- BLOODHOUND -->
+                <div class="ts-panel" id="panel-bloodhound">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-sitemap" style="color:#ff3131;"></i> BLOODHOUND — AD Attack Path Mapper</div>
+                        <div class="ts-field"><label>Domain</label><input class="ts-input" id="bh-domain" placeholder="CORP.LOCAL"></div>
+                        <div class="ts-field"><label>Username (optional)</label><input class="ts-input" id="bh-user" placeholder="domain\\username"></div>
+                        <div class="ts-field"><label>Collection Method</label>
+                            <select class="ts-select" id="bh-method">
+                                <option value="All">All</option>
+                                <option value="Default">Default</option>
+                                <option value="DCOnly">DC Only</option>
+                                <option value="Session">Sessions</option>
+                            </select>
+                        </div>
+                        <button class="ts-run-btn" id="btn-bloodhound" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);" onclick="runTool('bloodhound')">
+                            <i class="fas fa-play"></i> MAP AD PATHS
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> BLOODHOUND OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-bloodhound">IDLE</span>
+                                <button onclick="clearOutput('bloodhound')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-bloodhound"><span class="t-dim">$ bloodhound-python ready — enter domain and click MAP AD PATHS</span></div>
+                    </div>
+                </div>
+
+                <!-- WIRESHARK -->
+                <div class="ts-panel" id="panel-wireshark">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-wave-square" style="color:#00ff9d;"></i> WIRESHARK — Packet Analyzer</div>
+                        <div class="ts-field"><label>Interface</label>
+                            <select class="ts-select" id="ws-iface">
+                                <option value="eth0">eth0</option>
+                                <option value="wlan0">wlan0</option>
+                                <option value="lo">lo (loopback)</option>
+                                <option value="any">any</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Capture Filter (BPF)</label><input class="ts-input" id="ws-filter" placeholder="tcp port 80 or tcp port 443" value="tcp"></div>
+                        <div class="ts-field"><label>Duration (seconds)</label><input class="ts-input" id="ws-duration" type="number" value="30" min="5" max="300"></div>
+                        <div class="chk-row">
+                            <label class="chk-item"><input type="checkbox" id="ws-creds" checked> Extract Credentials</label>
+                            <label class="chk-item"><input type="checkbox" id="ws-ioc"> IOC Matching</label>
+                        </div>
+                        <button class="ts-run-btn" id="btn-wireshark" style="background:linear-gradient(135deg,#065f46,#047857);" onclick="runTool('wireshark')">
+                            <i class="fas fa-play"></i> START CAPTURE
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> WIRESHARK OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-wireshark">IDLE</span>
+                                <button onclick="clearOutput('wireshark')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-wireshark"><span class="t-dim">$ tshark ready — set interface and click START CAPTURE</span></div>
+                    </div>
+                </div>
+
+                <!-- JOHN -->
+                <div class="ts-panel" id="panel-john">
+                    <div class="ts-config">
+                        <div class="ts-config-title"><i class="fas fa-hammer" style="color:#9945FF;"></i> JOHN THE RIPPER — Password Cracker</div>
+                        <div class="ts-field"><label>Hash / Hash File Path</label><textarea class="ts-textarea" id="john-hashes" placeholder="5f4dcc3b5aa765d61d8327deb882cf99&#10;or /path/to/hashes.txt" rows="3"></textarea></div>
+                        <div class="ts-field"><label>Format</label>
+                            <select class="ts-select" id="john-format">
+                                <option value="raw-md5">raw-md5</option>
+                                <option value="raw-sha1">raw-sha1</option>
+                                <option value="raw-sha256">raw-sha256</option>
+                                <option value="bcrypt">bcrypt</option>
+                                <option value="nt">NT (Windows)</option>
+                                <option value="md5crypt">md5crypt</option>
+                                <option value="sha512crypt">sha512crypt</option>
+                            </select>
+                        </div>
+                        <div class="ts-field"><label>Wordlist</label>
+                            <select class="ts-select" id="john-wordlist">
+                                <option value="/usr/share/wordlists/rockyou.txt">RockYou</option>
+                                <option value="/usr/share/wordlists/fasttrack.txt">FastTrack</option>
+                            </select>
+                        </div>
+                        <button class="ts-run-btn" id="btn-john" style="background:linear-gradient(135deg,#5b21b6,#7c3aed);" onclick="runTool('john')">
+                            <i class="fas fa-play"></i> CRACK PASSWORDS
+                        </button>
+                    </div>
+                    <div class="ts-output">
+                        <div class="ts-output-header">
+                            <div class="ts-output-title"><i class="fas fa-terminal"></i> JOHN OUTPUT</div>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="ts-status" id="stat-john">IDLE</span>
+                                <button onclick="clearOutput('john')" style="font-size:9px;color:#4b5563;background:none;border:none;cursor:pointer;">CLEAR</button>
+                            </div>
+                        </div>
+                        <div class="ts-terminal" id="out-john"><span class="t-dim">$ john ready — paste hash or enter file path and click CRACK</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== VULNERABILITY FINDINGS ===== -->
+            <div class="cyber-panel mb-5">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-exclamation-triangle"></i> VULNERABILITY FINDINGS</div>
+                    <div style="display:flex;gap:8px;">
+                        <span style="font-size:10px;color:#4b5563;" id="vulnCount">0 findings</span>
+                        <button onclick="exportFindings()" style="font-size:9px;background:rgba(0,255,255,0.1);color:#00ffff;border:1px solid rgba(0,255,255,0.2);padding:3px 10px;border-radius:4px;cursor:pointer;">
+                            <i class="fas fa-download mr-1"></i>EXPORT
+                        </button>
+                    </div>
+                </div>
+                <div id="vulnList" style="padding:16px;min-height:100px;">
+                    <div style="text-align:center;color:#374151;font-size:11px;padding:30px 0;font-family:'Fira Code',monospace;">
+                        No vulnerabilities found yet — run a scan or tool to populate findings
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== LIVE EVENT LOG ===== -->
+            <div class="cyber-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-list-alt"></i> LIVE EVENT LOG</div>
+                    <button onclick="clearEvents()" style="font-size:9px;background:none;border:1px solid #1f2937;color:#4b5563;padding:3px 10px;border-radius:4px;cursor:pointer;">CLEAR</button>
+                </div>
+                <div class="event-log" id="eventLog">
+                    <div class="event-entry"><span class="event-time">[INIT]</span><span class="event-info">Scan Station v6.5 loaded — Socket.IO connecting...</span></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+        // ── Globals ──────────────────────────────────────────────────────────────
+        let socket = null;
+        let currentScanType = 'quick';
+        let totalVulns = 0, critCount = 0, scanCount = 0;
+
+        // ── Sidebar Toggle for Mobile ───────────────────────────────────────────
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.querySelector('.mobile-nav-toggle');
+            if (window.innerWidth <= 1024 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+
+        // ── Socket.IO ─────────────────────────────────────────────────────────────
+        function initSocket() {
+            try {
+                socket = io({ transports: ['websocket', 'polling'], timeout: 3000, reconnectionAttempts: 2 });
+
+                socket.on('connect', () => {
+                    addEvent('SYSTEM', 'Socket.IO connected — Brain online', 'success');
+                    document.getElementById('sideConnStatus').textContent = 'Connected';
+                    fetch('/api/status').then(r => r.json()).then(d => {
+                        document.getElementById('sideGpuStatus').textContent = d.gpu ? `GPU: ${d.gpu_name}` : 'GPU: CPU Mode';
+                    }).catch(() => {
+                        document.getElementById('sideGpuStatus').textContent = 'GPU: Demo Mode';
+                    });
+                });
+
+                socket.on('connect_error', () => {
+                    addEvent('SYSTEM', 'Backend offline — running in demo mode', 'warn');
+                    document.getElementById('sideConnStatus').textContent = 'Demo Mode';
+                    document.getElementById('sideGpuStatus').textContent = 'GPU: Demo Mode';
+                });
+
+                socket.on('disconnect', () => {
+                    addEvent('SYSTEM', 'Socket.IO disconnected', 'error');
+                    document.getElementById('sideConnStatus').textContent = 'Disconnected';
+                });
+
+                socket.on('layer_update', d => {
+                    const layerMap = { cnn:'l1p', gnn:'l2p', minilm:'l3p', bnn:'l4p', gan:'l5p', emily:'l6p', spine:'l7p' };
+                    const el = document.getElementById(layerMap[d.layer]);
+                    if (el) el.textContent = (d.probability || 0) + '%';
+                    if (d.details) addEvent(d.layer.toUpperCase(), d.details, d.status === 'error' ? 'error' : 'info');
+                });
+
+                socket.on('nmap_update',       d => renderToolResult('nmap', d));
+                socket.on('nikto_update',      d => renderToolResult('nikto', d));
+                socket.on('sqlmap_update',     d => renderToolResult('sqlmap', d));
+                socket.on('gobuster_update',   d => renderToolResult('gobuster', d));
+                socket.on('hydra_update',      d => renderToolResult('hydra', d));
+                socket.on('metasploit_update', d => renderToolResult('metasploit', d));
+                socket.on('wpscan_update',     d => renderToolResult('wpscan', d));
+                socket.on('burp_update',       d => renderToolResult('burp', d));
+                socket.on('bloodhound_update', d => renderToolResult('bloodhound', d));
+                socket.on('wireshark_update',  d => renderToolResult('wireshark', d));
+                socket.on('john_update',       d => renderToolResult('john', d));
+
+                socket.on('scan_update', d => {
+                    setProgress(50, `Scan update: ${d.tool || ''} on ${d.target || ''}`);
+                    addEvent('SCAN', `Tool ${d.tool} completed on ${d.target}`, 'success');
+                });
+
+                socket.on('scan_complete', d => {
+                    setProgress(100, 'Scan complete');
+                    document.getElementById('scanStatusBadge').className = 'ts-status done';
+                    document.getElementById('scanStatusBadge').textContent = 'DONE';
+                    addEvent('SCAN', `Scan complete — ${d.vulnerabilities_found || 0} vulns found`, 'success');
+                    const btn = document.getElementById('neuralScanBtn');
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-brain"></i> NEURAL SCAN'; }
+                });
+
+                socket.on('ai_suggestion', d => {
+                    addVuln({
+                        name: d.vulnerability || 'Unknown',
+                        severity: d.severity || 'MEDIUM',
+                        service: d.tool || 'ai',
+                        description: d.reasoning || '',
+                        command: d.payload_preview || ''
+                    });
+                    addEvent('AI', `Suggestion: ${d.vulnerability} [${d.severity}]`, d.severity === 'CRITICAL' ? 'error' : 'warn');
+                });
+
+                socket.on('exploit_update', d => {
+                    const data = d.data || d;
+                    addEvent('EXPLOIT', `${data.tool} → ${data.target} [${data.success ? 'SUCCESS' : 'FAILED'}]`, data.success ? 'success' : 'error');
+                });
+
+            } catch(e) {
+                addEvent('ERROR', 'Socket.IO init failed: ' + e.message, 'error');
+            }
+        }
+
+        // ── Tab switching ─────────────────────────────────────────────────────────
+        function switchTab(tool, tabEl) {
+            document.querySelectorAll('.ts-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.ts-panel').forEach(p => p.classList.remove('active'));
+            tabEl.classList.add('active');
+            const panel = document.getElementById('panel-' + tool);
+            if (panel) panel.classList.add('active');
+            syncTarget(tool);
+        }
+
+        function syncTarget(tool) {
+            const mainTarget = document.getElementById('urlInput')?.value?.trim();
+            if (!mainTarget) return;
+            const fieldMap = {
+                nmap: 'nmap-target', nikto: 'nikto-target', sqlmap: 'sqlmap-target',
+                gobuster: 'gobuster-target', hydra: 'hydra-target', metasploit: 'msf-target',
+                wpscan: 'wpscan-target', burp: 'burp-target', bloodhound: 'bh-domain',
+                wireshark: null, hashcat: null, john: null
+            };
+            const fieldId = fieldMap[tool];
+            if (fieldId) {
+                const el = document.getElementById(fieldId);
+                if (el && !el.value) el.value = mainTarget;
+            }
+        }
+
+        // ── Scan type selection ───────────────────────────────────────────────────
+        function selectScanType(btn, type) {
+            document.querySelectorAll('.scan-type-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            currentScanType = type;
+        }
+
+        // ── Neural Scan ───────────────────────────────────────────────────────────
+        function startNeuralScan() {
+            const url = document.getElementById('urlInput')?.value?.trim();
+            if (!url) {
+                alert('⚠️ Enter a target URL or IP address first');
+                document.getElementById('urlInput').focus();
+                return;
+            }
+
+            const btn = document.getElementById('neuralScanBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
+
+            document.getElementById('scanStatusBadge').className = 'ts-status running';
+            document.getElementById('scanStatusBadge').textContent = 'RUNNING';
+            document.getElementById('targetDisplay').innerHTML = `⚡ Neural analysis: <span style="color:#00ffff;">${url.substring(0,60)}</span>`;
+            document.getElementById('progressSection').style.display = 'block';
+            setProgress(5, 'Connecting to neural engine...');
+
+            // Store target
+            localStorage.setItem('last_target', url);
+            document.cookie = 'last_target=' + encodeURIComponent(url) + '; path=/; SameSite=Lax';
+
+            // Sync all tool fields
+            ['nmap','nikto','sqlmap','gobuster','hydra','metasploit','wpscan','burp'].forEach(t => syncTarget(t));
+
+            scanCount++;
+            document.getElementById('statScans').textContent = scanCount;
+
+            addEvent('SCAN', `Neural scan started: ${url} [${currentScanType}]`, 'info');
+
+            // Demo mode simulation
+            runNeuralScanDemo(url, btn);
+        }
+
+        function runNeuralScanDemo(url, btn) {
+            const layers = [
+                { id:'l1p', name:'CNN', delay:400,  prob:() => 72+Math.floor(Math.random()*25) },
+                { id:'l2p', name:'GNN', delay:900,  prob:() => 55+Math.floor(Math.random()*35) },
+                { id:'l3p', name:'MiniLM', delay:1400, prob:() => 48+Math.floor(Math.random()*40) },
+                { id:'l4p', name:'BNN', delay:1900, prob:() => 40+Math.floor(Math.random()*45) },
+                { id:'l5p', name:'GAN', delay:2400, prob:() => 30+Math.floor(Math.random()*50) },
+                { id:'l6p', name:'EMILY', delay:2900, prob:() => 80+Math.floor(Math.random()*18) },
+                { id:'l7p', name:'SPINE', delay:3400, prob:() => 60+Math.floor(Math.random()*35) },
+            ];
+
+            const steps = [
+                [5,   'Initializing neural engine...'],
+                [12,  'Resolving target...'],
+                [22,  'CNN layer: pattern recognition...'],
+                [34,  'GNN layer: network topology mapping...'],
+                [46,  'MiniLM layer: semantic analysis...'],
+                [55,  'BNN layer: behavioral modeling...'],
+                [64,  'GAN layer: adversarial probing...'],
+                [76,  'EMILY layer: exploit correlation...'],
+                [85,  'SPINE layer: post-exploitation paths...'],
+                [93,  'Aggregating findings...'],
+                [100, 'Neural scan complete'],
+            ];
+
+            const scanId = 'SCAN-' + Math.random().toString(36).substring(2,9).toUpperCase();
+            addEvent('SCAN', `Scan ID: ${scanId} — Target: ${url}`, 'success');
+
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    setProgress(steps[stepIdx][0], steps[stepIdx][1]);
+                    stepIdx++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('scanStatusBadge').className = 'ts-status done';
+                    document.getElementById('scanStatusBadge').textContent = 'DONE';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-brain"></i> NEURAL SCAN';
+                    const conf = 72 + Math.floor(Math.random()*25);
+                    document.getElementById('statConf').textContent = conf + '%';
+                    addEvent('SCAN', `Neural scan complete — AI Confidence: ${conf}%`, 'success');
+                    setTimeout(() => injectDemoVulns(url), 300);
+                }
+            }, 380);
+
+            layers.forEach(l => {
+                setTimeout(() => {
+                    const el = document.getElementById(l.id);
+                    if (el) {
+                        const v = l.prob();
+                        el.textContent = v + '%';
+                        el.style.transition = 'all 0.4s';
+                        el.style.transform = 'scale(1.15)';
+                        setTimeout(() => el.style.transform = 'scale(1)', 300);
+                        addEvent(l.name, `Layer activated — confidence: ${v}%`, 'info');
+                    }
+                }, l.delay);
+            });
+        }
+
+        function injectDemoVulns(target) {
+            const pool = [
+                { name:'Apache Version Disclosure', severity:'LOW', cve:'CVE-2023-25690', description:'Server header exposes Apache version string.', service:'nikto' },
+                { name:'SQL Injection (GET param)', severity:'HIGH', cve:'CVE-2023-4911', description:'Parameter id is injectable — UNION-based confirmed.', service:'sqlmap' },
+                { name:'Outdated OpenSSH (8.2p1)', severity:'MEDIUM', cve:'CVE-2023-38408', description:'OpenSSH agent hijacking via forwarded socket.', service:'nmap' },
+                { name:'Directory Listing Enabled', severity:'MEDIUM', cve:null, description:'/uploads/ directory listing exposes file tree.', service:'gobuster' },
+                { name:'Cross-Site Scripting (XSS)', severity:'HIGH', cve:'CVE-2023-44487', description:'Reflected XSS in search parameter.', service:'burp' },
+                { name:'EternalBlue (MS17-010)', severity:'CRITICAL', cve:'CVE-2017-0144', description:'SMBv1 remote code execution — unpatched Windows host.', service:'nmap' },
+            ];
+            const count = 2 + Math.floor(Math.random() * 3);
+            const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, count);
+            shuffled.forEach((v, i) => {
+                setTimeout(() => addVuln(v), i * 400);
+            });
+        }
+
+        // ── Individual tool execution ──────────────────────────────────────────────
+        function getToolParams(tool) {
+            const mainTarget = document.getElementById('urlInput')?.value?.trim() || localStorage.getItem('last_target') || '';
+            const p = { target: mainTarget };
+
+            if (tool === 'nmap') {
+                p.target = document.getElementById('nmap-target')?.value || mainTarget;
+                p.scan_type = 'nmap';
+                p.options = { args: document.getElementById('nmap-opts')?.value || '-sV' };
+                const extra = document.getElementById('nmap-args')?.value;
+                if (extra) p.options.extra = extra;
+
+            } else if (tool === 'nikto') {
+                p.target = document.getElementById('nikto-target')?.value || mainTarget;
+                p.scan_type = 'nikto';
+                p.options = { mode: document.getElementById('nikto-mode')?.value || '-h', port: document.getElementById('nikto-port')?.value || '80' };
+
+            } else if (tool === 'sqlmap') {
+                p.target = document.getElementById('sqlmap-target')?.value || mainTarget;
+                p.scan_type = 'sqlmap';
+                p.options = {
+                    risk: document.getElementById('sqlmap-risk')?.value || '2',
+                    level: document.getElementById('sqlmap-level')?.value || '3',
+                    dbms: document.getElementById('sqlmap-dbms')?.value || '',
+                    batch: document.getElementById('sqlmap-batch')?.checked,
+                    dbs: document.getElementById('sqlmap-dbs')?.checked
+                };
+
+            } else if (tool === 'gobuster') {
+                p.target = document.getElementById('gobuster-target')?.value || mainTarget;
+                p.scan_type = 'gobuster';
+                p.options = {
+                    wordlist: document.getElementById('gobuster-wordlist')?.value,
+                    extensions: document.getElementById('gobuster-ext')?.value,
+                    threads: parseInt(document.getElementById('gobuster-threads')?.value || '50')
+                };
+
+            } else if (tool === 'hydra') {
+                p.target = document.getElementById('hydra-target')?.value || mainTarget;
+                p.tool = 'hydra';
+                p.service = document.getElementById('hydra-service')?.value || 'ssh';
+                p.params = {
+                    username: document.getElementById('hydra-user')?.value || 'admin',
+                    wordlist: document.getElementById('hydra-wordlist')?.value,
+                    threads: parseInt(document.getElementById('hydra-threads')?.value || '16'),
+                    service: document.getElementById('hydra-service')?.value || 'ssh'
+                };
+
+            } else if (tool === 'metasploit') {
+                p.target = document.getElementById('msf-target')?.value || mainTarget;
+                p.tool = 'metasploit';
+                p.exploit = document.getElementById('msf-exploit')?.value || 'apache';
+                p.params = {
+                    exploit: document.getElementById('msf-exploit')?.value,
+                    payload: document.getElementById('msf-payload')?.value,
+                    lhost: document.getElementById('msf-lhost')?.value || '127.0.0.1',
+                    lport: document.getElementById('msf-lport')?.value || '4444'
+                };
+
+            } else if (tool === 'wpscan') {
+                p.target = document.getElementById('wpscan-target')?.value || mainTarget;
+                p.scan_type = 'wpscan';
+                p.options = {
+                    enumerate: document.getElementById('wpscan-enum')?.value || 'vp',
+                    detection_mode: document.getElementById('wpscan-mode')?.value || 'aggressive'
+                };
+
+            } else if (tool === 'hashcat') {
+                p.tool = 'hashcat';
+                p.target = document.getElementById('hashcat-hash')?.value?.trim() || mainTarget;
+                p.params = {
+                    hash: document.getElementById('hashcat-hash')?.value?.trim(),
+                    hash_type: document.getElementById('hashcat-type')?.value || '0',
+                    attack_mode: document.getElementById('hashcat-mode')?.value || '0',
+                    wordlist: document.getElementById('hashcat-wordlist')?.value,
+                    mask: document.getElementById('hashcat-mask')?.value || '',
+                    force: document.getElementById('hashcat-force')?.checked,
+                    show: document.getElementById('hashcat-show')?.checked
+                };
+
+            } else if (tool === 'burp') {
+                p.target = document.getElementById('burp-target')?.value || mainTarget;
+                p.tool = 'burp';
+                p.params = { scan_type: document.getElementById('burp-type')?.value || 'active' };
+
+            } else if (tool === 'bloodhound') {
+                p.target = document.getElementById('bh-domain')?.value || mainTarget;
+                p.tool = 'bloodhound';
+                p.params = {
+                    domain: document.getElementById('bh-domain')?.value,
+                    username: document.getElementById('bh-user')?.value || '',
+                    collection: document.getElementById('bh-method')?.value || 'All'
+                };
+
+            } else if (tool === 'wireshark') {
+                p.tool = 'wireshark';
+                p.params = {
+                    interface: document.getElementById('ws-iface')?.value || 'eth0',
+                    filter: document.getElementById('ws-filter')?.value || 'tcp',
+                    duration: parseInt(document.getElementById('ws-duration')?.value || '30')
+                };
+
+            } else if (tool === 'john') {
+                p.tool = 'john';
+                const hashes = document.getElementById('john-hashes')?.value?.trim() || '';
+                p.target = hashes;
+                p.params = {
+                    hash_file: hashes,
+                    format: document.getElementById('john-format')?.value || 'raw-md5',
+                    wordlist: document.getElementById('john-wordlist')?.value
+                };
+            }
+
+            return p;
+        }
+
+        // Mock data for demo mode
+        const MOCK_DATA = {
+            nmap: (target) => ({
+                success: true,
+                command: `nmap -sV -sC ${target}`,
+                ports: [22, 80, 443, 3306, 8080],
+                services: [
+                    { port: 22,   name: 'ssh',   version: 'OpenSSH 8.2p1 Ubuntu' },
+                    { port: 80,   name: 'http',  version: 'Apache httpd 2.4.41' },
+                    { port: 443,  name: 'https', version: 'Apache httpd 2.4.41 (SSL)' },
+                    { port: 3306, name: 'mysql', version: 'MySQL 5.7.39' },
+                    { port: 8080, name: 'http',  version: 'Jetty 9.4.43.v20210629' },
+                ],
+                vulnerabilities: [
+                    { name: 'Apache Version Disclosure', severity: 'LOW',  cve: 'CVE-2023-25690', description: 'Apache version exposed in Server header.' },
+                    { name: 'Outdated MySQL (5.7.x)',     severity: 'HIGH', cve: 'CVE-2023-21912', description: 'MySQL 5.7 has reached end-of-life.' },
+                ],
+                output: `Starting Nmap 7.93 at ${new Date().toLocaleString()}\nNmap scan report for ${target}\nHost is up (0.0032s latency).\n\nPORT     STATE  SERVICE       VERSION\n22/tcp   open   ssh           OpenSSH 8.2p1 Ubuntu 4ubuntu0.5\n80/tcp   open   http          Apache httpd 2.4.41\n443/tcp  open   ssl/https     Apache httpd 2.4.41\n3306/tcp open   mysql         MySQL 5.7.39\n8080/tcp open   http-proxy    Jetty 9.4.43\n\nService detection performed.\nNmap done: 1 IP address (1 host up) scanned in 8.24 seconds`
+            }),
+            nikto: (target) => ({
+                success: true,
+                command: `nikto -h ${target}`,
+                vulnerabilities: [
+                    { name: 'X-Frame-Options header missing',       severity: 'MEDIUM', description: 'Clickjacking protection absent.' },
+                    { name: 'X-Content-Type-Options not set',       severity: 'LOW',    description: 'MIME type sniffing not prevented.' },
+                    { name: '/admin/ directory accessible',          severity: 'HIGH',   description: 'Admin panel exposed without auth.' },
+                    { name: 'Strict-Transport-Security missing',    severity: 'MEDIUM', description: 'HSTS header not configured.' },
+                ],
+                output: `- Nikto v2.1.6\n- Target IP: ${target}\n- Target Port: 80\n+ Server: Apache/2.4.41 (Ubuntu)\n+ /admin/: Admin login page/section found.\n+ OSVDB-3092: /admin/: This might be interesting...\n+ Cookie PHPSESSID created without HttpOnly flag\n+ No CGI Directories found\n+ 8725 requests: 0 error(s) and 4 item(s) reported`
+            }),
+            sqlmap: (target) => ({
+                success: true,
+                command: `sqlmap -u "${target}?id=1" --risk=2 --level=3 --dbs --batch`,
+                vulnerabilities: [
+                    { name: 'SQL Injection — GET id parameter', severity: 'CRITICAL', cve: 'CWE-89', description: 'UNION-based blind injection confirmed on id parameter.' },
+                ],
+                output: `[INFO] testing connection to target URL\n[INFO] testing if GET parameter 'id' is dynamic\n[INFO] GET parameter 'id' appears to be 'AND boolean-based blind' injectable\n[CRITICAL] GET parameter 'id' is vulnerable!\n[INFO] fetching database names\navailable databases [3]:\n[*] information_schema\n[*] webapp_db\n[*] user_data`
+            }),
+            gobuster: (target) => ({
+                success: true,
+                command: `gobuster dir -u ${target} -w /usr/share/wordlists/dirb/common.txt -x php,html,txt -t 50`,
+                directories: ['/admin', '/uploads', '/backup', '/config.php', '/login.php', '/.git', '/api', '/static', '/images', '/includes', '/js', '/css'],
+                output: `===============================================================\nGobuster v3.5\n===============================================================\n/admin                (Status: 302) [Size: 0]\n/uploads              (Status: 200) [Size: 4096]\n/backup               (Status: 403) [Size: 287]\n/.git                 (Status: 200) [Size: 23]\n/config.php           (Status: 200) [Size: 0]\n/login.php            (Status: 200) [Size: 2847]\n===============================================================`
+            }),
+            hydra: (target) => ({
+                success: true,
+                command: `hydra -l admin -P /usr/share/wordlists/rockyou.txt ssh://${target} -t 16`,
+                credentials: [
+                    { username: 'admin', password: 'password123' },
+                ],
+                output: `Hydra v9.4 starting\n[DATA] attacking ssh://${target}:22/\n[22][ssh] host: ${target}   login: admin   password: password123\n1 of 1 target successfully completed, 1 valid password found`
+            }),
+            metasploit: (target) => ({
+                success: true,
+                command: `msf6 > use exploit/multi/http/apache_normalization; set RHOSTS ${target}; run`,
+                output: `msf6 > use exploit/multi/http/apache_normalization\nmsf6 exploit(...) > set RHOSTS ${target}\nRHOSTS => ${target}\nmsf6 exploit(...) > run\n[*] Started reverse TCP handler on 127.0.0.1:4444\n[*] ${target}:80 - Sending stage (${(Math.random()*100+100).toFixed(0)} bytes) to ${target}\n[*] Meterpreter session 1 opened\nmeterpreter > sysinfo\nComputer  : ubuntu-server\nOS        : Linux 5.15.0-91-generic\nArch      : x64\nmeterpreter > `
+            }),
+            wpscan: (target) => ({
+                success: true,
+                command: `wpscan --url ${target} --enumerate vp,u --detection-mode aggressive`,
+                vulnerabilities: [
+                    { name: 'WordPress 6.1.1 XSS',           severity: 'HIGH',   cve: 'CVE-2023-22622', description: 'Stored XSS in core block editor.' },
+                    { name: 'Contact Form 7 < 5.7.2 — CSRF', severity: 'MEDIUM', cve: 'CVE-2023-6449',  description: 'CSRF token bypass in CF7 plugin.' },
+                ],
+                output: `_______________________________________________________________\n__          _______   _____  \n\ \        / /  __ \ / ____|\n \ \  /\  / /| |__) | (___   ___  __ _ _ __ ™\n  \ \/  \/ / |  ___/ \___ \ / __|/ _\` | '_ \\\n   \  /\  /  | |     ____) | (__| (_| | | | |\n    \/  \/   |_|    |_____/ \___|\\__,_|_| |_|\n\nWordPress version: 6.1.1\nUsers found: admin, editor\nVulnerable plugins: contact-form-7/5.7.0`
+            }),
+            hashcat: (params) => ({
+                success: true,
+                command: `hashcat -m 0 -a 0 ${(params.params?.hash||'').substring(0,16)}... /usr/share/wordlists/rockyou.txt --force`,
+                cracked_passwords: [
+                    { hash: params.params?.hash || '5f4dcc3b5aa765d61d8327deb882cf99', password: 'password', type: 'MD5' }
+                ],
+                output: `hashcat (v6.2.6) starting...\nDictionary cache hit:\n* Filename: /usr/share/wordlists/rockyou.txt\n* Passwords: 14344385\n\n${(params.params?.hash||'5f4dcc3b5aa765d61d8327deb882cf99').substring(0,32)}:password\n\nSession..........: hashcat\nStatus...........: Cracked\nHash.Mode........: 0 (MD5)\nTime.Estimated...: Done\nGuesses.Queue....: 1/1 (100.00%)`
+            }),
+            burp: (target) => ({
+                success: true,
+                command: `burp --api active-scan --target ${target}`,
+                issues: [
+                    { name: 'Reflected XSS',                 severity: 'HIGH',   path: '/search?q=<script>', description: 'Parameter q reflects unsanitised input.' },
+                    { name: 'SQL Injection',                   severity: 'CRITICAL', path: '/product?id=1', description: 'Error-based SQLi confirmed.' },
+                    { name: 'Insecure Direct Object Reference', severity: 'HIGH',   path: '/user/profile?id=2', description: 'Accessing other users profiles via id param.' },
+                    { name: 'Missing CSRF Token',              severity: 'MEDIUM', path: '/account/update', description: 'Account update form lacks CSRF protection.' },
+                ],
+                output: `Burp Suite Pro — Active Scan\nTarget: ${target}\n[HIGH]   Reflected XSS at /search?q=...\n[CRITICAL] SQL Injection at /product?id=...\n[HIGH]   IDOR at /user/profile?id=...\n[MEDIUM] Missing CSRF token at /account/update\n\nScan complete. 4 issues found.`
+            }),
+            bloodhound: (target) => ({
+                success: true,
+                command: `bloodhound-python -d ${target} -c All --zip`,
+                output: `BloodHound.py v1.6.1\nDomain: ${target}\nCollecting domain info...\nFound 12 users, 8 groups, 3 computers\nAttack paths found:\n  [!] admin -> Domain Admin (Kerberoastable)\n  [!] helpdesk -> IT_ADMINS -> Domain Admin\nData saved to ${target.replace('.','_')}_bloodhound.zip`
+            }),
+            wireshark: (params) => ({
+                success: true,
+                command: `tshark -i ${params.params?.interface||'eth0'} -f "${params.params?.filter||'tcp'}" -a duration:${params.params?.duration||30}`,
+                output: `Capturing on interface: ${params.params?.interface||'eth0'}\nFilter: ${params.params?.filter||'tcp'}\n\n192.168.1.42 → 192.168.1.1   TCP 74  54321 → 80 [SYN]\n192.168.1.1  → 192.168.1.42  TCP 74  80 → 54321 [SYN,ACK]\n192.168.1.42 → 10.0.0.5      HTTP GET /login HTTP/1.1\n[!] Possible credential capture: Authorization: Basic YWRtaW46cGFzc3dvcmQ=\n\nPackets captured: 847. Capture complete.`
+            }),
+            john: (params) => ({
+                success: true,
+                command: `john --format=${params.params?.format||'raw-md5'} --wordlist=${params.params?.wordlist||'/usr/share/wordlists/rockyou.txt'} hashes.txt`,
+                cracked_passwords: [
+                    { hash: '5f4dcc3b5aa765d61d8327deb882cf99', password: 'password',  type: params.params?.format || 'raw-md5' },
+                    { hash: 'e10adc3949ba59abbe56e057f20f883e', password: '123456',    type: params.params?.format || 'raw-md5' },
+                ],
+                output: `Using default input encoding: UTF-8\nLoaded 2 password hashes with no different salts (Raw-MD5)\nWill run 4 OpenMP threads\nPress 'q' or Ctrl-C to abort\n\npassword         (hash1)\n123456           (hash2)\n\n2g 0:00:00:00 DONE (${new Date().toLocaleDateString()}) 6g/s 9200p/s`
+            }),
+        };
+
+        function runTool(tool) {
+            const params = getToolParams(tool);
+            const outEl  = document.getElementById('out-' + tool);
+            const statEl = document.getElementById('stat-' + tool);
+            const btnEl  = document.getElementById('btn-' + tool);
+
+            if (!outEl) { console.error('No output element for', tool); return; }
+
+            const NEEDS_TARGET = ['nmap','nikto','sqlmap','gobuster','hydra','metasploit','wpscan','burp','bloodhound'];
+            const effectiveTarget = params.target || params.params?.hash || params.params?.hash_file;
+            if (NEEDS_TARGET.includes(tool) && !effectiveTarget) {
+                alert(`⚠️ Please enter a target for ${tool.toUpperCase()} first`);
+                document.getElementById('urlInput')?.focus();
+                return;
+            }
+
+            outEl.innerHTML = '';
+            if (statEl) { statEl.className = 'ts-status running'; statEl.textContent = 'RUNNING'; }
+            if (btnEl)  { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...'; }
+
+            appendLine(outEl, `<span class="t-cmd">$ Executing ${tool.toUpperCase()}...</span>`);
+            appendLine(outEl, `<span class="t-dim">Target: ${escHtml(effectiveTarget || '—')}</span>`);
+            appendLine(outEl, '');
+
+            addEvent(tool.toUpperCase(), `Running on ${effectiveTarget || 'N/A'}`, 'info');
+
+            const delay = 800 + Math.random() * 1200;
+            setTimeout(() => {
+                let data;
+                if (typeof MOCK_DATA[tool] === 'function') {
+                    try { data = MOCK_DATA[tool](effectiveTarget || params); }
+                    catch(e) { data = { success:true, output: `[DEMO] ${tool} completed on ${effectiveTarget}` }; }
+                } else {
+                    data = { success:true, output: `[DEMO] ${tool} completed on ${effectiveTarget}` };
+                }
+
+                if (statEl) { statEl.className = 'ts-status done'; statEl.textContent = 'DONE'; }
+                if (btnEl)  { btnEl.disabled = false; btnEl.innerHTML = btnEl.getAttribute('data-original') || `<i class="fas fa-play"></i> RUN`; }
+                renderToolResult(tool, data, outEl);
+                addEvent(tool.toUpperCase(), `Completed — ${data.success ? 'success' : 'failed'}`, data.success ? 'success' : 'error');
+
+                if (tool === 'nmap') { window._lastNmapData = data; }
+            }, delay);
+        }
+
+        function renderToolResult(tool, data, outEl) {
+            if (!outEl) outEl = document.getElementById('out-' + tool);
+            if (!outEl) return;
+
+            if (data.success === false && data.error) {
+                appendLine(outEl, `<span class="t-err">✗ ${escHtml(data.error)}</span>`);
+                return;
+            }
+
+            if (data.output) {
+                data.output.split('\n').forEach(line => {
+                    const cls = line.includes('CRITICAL') || line.includes('CRACKED') || line.includes('✓') ? 't-hit'
+                              : line.includes('ERROR') || line.includes('✗')  ? 't-err'
+                              : line.includes('WARNING') || line.includes('⚠') ? 't-warn'
+                              : line.startsWith('#') || line.startsWith('[') || line.startsWith('$') ? 't-cmd'
+                              : '';
+                    appendLine(outEl, `<span class="${cls}">${escHtml(line)}</span>`);
+                });
+                appendLine(outEl, '');
+            }
+
+            if (data.ports?.length) {
+                appendLine(outEl, `<span class="t-info">Open ports: ${data.ports.join(', ')}</span>`);
+            }
+
+            if (data.services?.length) {
+                appendLine(outEl, '<span class="t-info">── Services ──</span>');
+                data.services.forEach(s => {
+                    appendLine(outEl, `<span class="t-ok">  [${s.port || '?'}] ${escHtml(s.name || '')} ${escHtml(s.version || '')}</span>`);
+                });
+                appendLine(outEl, '');
+            }
+
+            if (data.vulnerabilities?.length) {
+                appendLine(outEl, `<span class="t-warn">── Vulnerabilities (${data.vulnerabilities.length}) ──</span>`);
+                data.vulnerabilities.forEach(v => {
+                    const sev = (v.severity || 'MEDIUM').toUpperCase();
+                    const cls = sev === 'CRITICAL' ? 't-crit' : sev === 'HIGH' ? 't-hit' : sev === 'MEDIUM' ? 't-warn' : 't-ok';
+                    appendLine(outEl, `<span class="${cls}">  [${sev}] ${escHtml(v.name || v.type || 'Unknown')}</span>`);
+                    if (v.cve) appendLine(outEl, `<span class="t-dim">         CVE: ${escHtml(v.cve)}</span>`);
+                    if (v.path) appendLine(outEl, `<span class="t-dim">         Path: ${escHtml(v.path)}</span>`);
+                    addVuln({ name: v.name || v.type || 'Unknown', severity: sev, service: tool, description: v.description || '', cve: v.cve || null });
+                });
+                appendLine(outEl, '');
+            }
+
+            if (data.cracked_passwords?.length) {
+                appendLine(outEl, `<span class="t-warn">── Cracked Passwords (${data.cracked_passwords.length}) ──</span>`);
+                data.cracked_passwords.forEach(c => {
+                    appendLine(outEl, `<span class="t-hit">  CRACKED: ${escHtml(c.hash?.substring(0,16) || '')}... → "${escHtml(c.password)}" [${c.type || ''}]</span>`);
+                });
+                appendLine(outEl, '');
+            }
+
+            if (data.credentials?.length) {
+                appendLine(outEl, `<span class="t-warn">── Credentials Found (${data.credentials.length}) ──</span>`);
+                data.credentials.forEach(c => {
+                    appendLine(outEl, `<span class="t-hit">  ${escHtml(c.username || '')} : ${escHtml(c.password || '')}</span>`);
+                });
+                appendLine(outEl, '');
+            }
+
+            if (data.directories?.length) {
+                appendLine(outEl, `<span class="t-info">── Directories Found (${data.directories.length}) ──</span>`);
+                data.directories.slice(0, 20).forEach(d => {
+                    appendLine(outEl, `<span class="t-ok">  ${escHtml(d)}</span>`);
+                });
+                if (data.directories.length > 20) appendLine(outEl, `<span class="t-dim">  ... and ${data.directories.length - 20} more</span>`);
+            }
+
+            if (data.issues?.length) {
+                appendLine(outEl, `<span class="t-warn">── Issues Found (${data.issues.length}) ──</span>`);
+                data.issues.forEach(i => {
+                    const sev = (i.severity || 'MEDIUM').toUpperCase();
+                    const cls = sev === 'CRITICAL' ? 't-crit' : sev === 'HIGH' ? 't-hit' : 't-warn';
+                    appendLine(outEl, `<span class="${cls}">  [${sev}] ${escHtml(i.name)} — ${escHtml(i.path || '')}</span>`);
+                    addVuln({ name: i.name, severity: sev, service: 'burp', description: i.description || '', cve: null });
+                });
+            }
+
+            if (data.command) {
+                appendLine(outEl, `<span class="t-dim">Command: ${escHtml(data.command)}</span>`);
+            }
+
+            appendLine(outEl, `<span class="t-dim">─── Completed ${new Date().toLocaleTimeString()} ───</span>`);
+            outEl.scrollTop = outEl.scrollHeight;
+        }
+
+        // ── Vulnerability Findings Panel ──────────────────────────────────────────
+        function addVuln(v) {
+            const list = document.getElementById('vulnList');
+            totalVulns++;
+            if (v.severity === 'CRITICAL') critCount++;
+            document.getElementById('statVulns').textContent = totalVulns;
+            document.getElementById('statCrit').textContent = critCount;
+            document.getElementById('vulnCount').textContent = `${totalVulns} finding${totalVulns !== 1 ? 's' : ''}`;
+
+            const sevClass = {CRITICAL:'sev-crit', HIGH:'sev-high', MEDIUM:'sev-med', LOW:'sev-low'}[v.severity] || 'sev-low';
+            const card = document.createElement('div');
+            card.className = 'vuln-card';
+            card.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                    <div style="font-size:12px;font-weight:600;color:#e2e8f0;flex:1;">${escHtml(v.name)}</div>
+                    <span class="sev ${sevClass}">${v.severity}</span>
+                </div>
+                <div style="font-size:10px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap;">
+                    <span><i class="fas fa-wrench" style="margin-right:3px;"></i>${escHtml(v.service || 'unknown')}</span>
+                    ${v.cve ? `<span style="color:#00ffff;"><i class="fas fa-tag" style="margin-right:3px;"></i>${escHtml(v.cve)}</span>` : ''}
+                    <span style="color:#4b5563;">${new Date().toLocaleTimeString()}</span>
+                </div>
+                ${v.description ? `<div style="font-size:10px;color:#6b7280;margin-top:6px;font-family:'Fira Code',monospace;">${escHtml(v.description.substring(0,120))}</div>` : ''}
+                ${v.command ? `<div style="font-size:10px;color:#9945FF;margin-top:4px;font-family:'Fira Code',monospace;word-break:break-all;">> ${escHtml(v.command.substring(0,100))}</div>` : ''}
+            `;
+
+            if (list.querySelector('[style*="No vulnerabilities"]')) list.innerHTML = '';
+            list.insertBefore(card, list.firstChild);
+        }
+
+        // ── Event log ─────────────────────────────────────────────────────────────
+        function addEvent(tag, msg, type) {
+            const log = document.getElementById('eventLog');
+            const cls = {success:'event-success', error:'event-error', warn:'event-warn', info:'event-info'}[type] || 'event-info';
+            const entry = document.createElement('div');
+            entry.className = 'event-entry';
+            entry.innerHTML = `<span class="event-time">[${new Date().toLocaleTimeString()}]</span><span class="${cls}">[${tag}] ${escHtml(msg)}</span>`;
+            log.insertBefore(entry, log.firstChild);
+            if (log.children.length > 200) log.removeChild(log.lastChild);
+        }
+        function clearEvents() { document.getElementById('eventLog').innerHTML = '<div class="event-entry"><span class="event-time">[CLEAR]</span><span class="event-info">Event log cleared</span></div>'; }
+
+        // ── Progress ───────────────────────────────────────────────────────────────
+        function setProgress(pct, msg) {
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressPct').textContent = pct + '%';
+            if (msg) document.getElementById('progressMsg').textContent = msg;
+            document.getElementById('progressSection').style.display = 'block';
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────────
+        function appendLine(el, html) {
+            const d = document.createElement('div');
+            d.innerHTML = html || '&nbsp;';
+            el.appendChild(d);
+            el.scrollTop = el.scrollHeight;
+        }
+        function clearOutput(tool) {
+            const el = document.getElementById('out-' + tool);
+            if (el) el.innerHTML = `<span class="t-dim">$ ${tool} output cleared</span>`;
+            const stat = document.getElementById('stat-' + tool);
+            if (stat) { stat.className = 'ts-status'; stat.textContent = 'IDLE'; }
+        }
+        function escHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        function getCookie(name) {
+            const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return m ? decodeURIComponent(m[2]) : '';
+        }
+
+        function downloadJSON() {
+            const data = window._lastNmapData || { message: 'Run Nmap first to generate data' };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'sentinel-nmap-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+        }
+
+        function downloadCSV() {
+            const data = window._lastNmapData;
+            if (!data?.services?.length) {
+                alert('Run Nmap first to generate CSV data');
+                return;
+            }
+            const rows = [['Port','Service','Version']];
+            data.services.forEach(s => rows.push([s.port, s.name, s.version || '']));
+            const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'sentinel-nmap-' + new Date().toISOString().split('T')[0] + '.csv';
+            a.click();
+        }
+
+        function exportFindings() {
+            const cards = document.querySelectorAll('#vulnList .vuln-card');
+            const data = [];
+            cards.forEach(c => {
+                data.push(c.innerText.trim());
+            });
+            const blob = new Blob([data.join('\n\n---\n\n')], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'sentinel-findings-' + new Date().toISOString().split('T')[0] + '.txt';
+            a.click();
+        }
+
+        // ── Hashcat mode toggle ───────────────────────────────────────────────────
+        const hashcatMode = document.getElementById('hashcat-mode');
+        if (hashcatMode) {
+            hashcatMode.addEventListener('change', function() {
+                const maskField = document.getElementById('hashcat-mask-field');
+                if (maskField) maskField.style.display = this.value === '3' ? 'block' : 'none';
+            });
+        }
+
+        // ── Main URL input syncs tool targets ────────────────────────────────────
+        const urlInput = document.getElementById('urlInput');
+        if (urlInput) {
+            urlInput.addEventListener('change', function() {
+                const v = this.value.trim();
+                ['nmap-target','nikto-target','sqlmap-target','gobuster-target','hydra-target','msf-target','wpscan-target','burp-target'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.value) el.value = v;
+                });
+            });
+        }
+
+        // ── Init ─────────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+
+            const last = localStorage.getItem('last_target') || getCookie('last_target');
+            if (last && urlInput) urlInput.value = decodeURIComponent(last);
+
+            ['nmap','nikto','sqlmap','gobuster','hydra','wpscan','burp','bloodhound','wireshark','john','metasploit','hashcat'].forEach(tool => {
+                const btn = document.getElementById('btn-' + tool);
+                if (btn) btn.setAttribute('data-original', btn.innerHTML);
+            });
+
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,255,157,0.08);border-top:1px solid rgba(0,255,157,0.2);padding:6px 24px;font-family:\'Fira Code\',monospace;font-size:10px;color:#00ff9d;z-index:999;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+            banner.innerHTML = '<i class="fas fa-flask"></i> <strong>DEMO MODE</strong> — No backend required. All scans produce realistic simulated results. <span style="color:#4b5563;margin-left:auto;">Sentinel-1 v6.5</span>';
+            document.body.appendChild(banner);
+        });
+    </script>
+</body>
+</html>

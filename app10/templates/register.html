@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Sentinel-1 Cybersecurity Hub</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0c10 0%, #0f1117 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.03) 0%, transparent 50%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        .bg-animation::after {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 80% 70%, rgba(255, 0, 255, 0.03) 0%, transparent 50%);
+            animation: rotate-reverse 25s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes rotate-reverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+        
+        /* Register Container */
+        .register-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 500px;
+            margin: 2rem;
+        }
+        
+        .register-card {
+            background: rgba(15, 20, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 2.5rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+        }
+        
+        .register-card:hover {
+            border-color: rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+        
+        /* Logo */
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .logo-sub {
+            font-size: 0.8rem;
+            color: #666;
+            letter-spacing: 2px;
+            margin-top: 0.25rem;
+        }
+        
+        /* Title */
+        .title {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .title h2 {
+            color: #e0e0e0;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .title p {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        
+        /* Form */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-wrapper i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .input-wrapper input {
+            width: 100%;
+            padding: 0.9rem 1rem 0.9rem 2.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+        
+        .input-wrapper input:focus + i {
+            color: #00ffff;
+        }
+        
+        .input-wrapper input.error {
+            border-color: #ff4444;
+        }
+        
+        /* Password Strength Meter */
+        .password-strength {
+            margin-top: 0.5rem;
+        }
+        
+        .strength-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s;
+            border-radius: 2px;
+        }
+        
+        .strength-text {
+            font-size: 0.7rem;
+            color: #888;
+        }
+        
+        /* Error Message */
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border-left: 3px solid #ff4444;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ff8888;
+            font-size: 0.85rem;
+        }
+        
+        .success-message {
+            background: rgba(0, 255, 0, 0.1);
+            border-left: 3px solid #44ff44;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #88ff88;
+            font-size: 0.85rem;
+        }
+        
+        /* Button */
+        .register-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            border: none;
+            border-radius: 12px;
+            color: #0a0c10;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 255, 255, 0.3);
+        }
+        
+        /* Links */
+        .links {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .links a {
+            color: #00ffff;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Terms */
+        .terms {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+        }
+        
+        .terms a {
+            color: #00ffff;
+            text-decoration: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .register-card {
+                padding: 1.5rem;
+            }
+            
+            .logo-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            
+            .logo-text {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <div class="register-container">
+        <div class="register-card">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-haltered"></i>
+                </div>
+                <div class="logo-text">SENTINEL-1</div>
+                <div class="logo-sub">CREATE ACCOUNT</div>
+            </div>
+            
+            <div class="title">
+                <h2>Join Sentinel-1</h2>
+                <p>Start your cybersecurity journey today</p>
+            </div>
+            
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+            
+            {% if success %}
+            <div class="success-message">
+                <i class="fas fa-check-circle"></i>
+                <span>{{ success }}</span>
+            </div>
+            {% endif %}
+            
+            <form method="POST" action="/register" id="registerForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required 
+                               value="{{ username if username else '' }}" autofocus>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required
+                               value="{{ email if email else '' }}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                    </div>
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="strengthText">Password strength</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-check-circle"></i>
+                        <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                    </div>
+                    <div class="strength-text" id="confirmMessage" style="margin-top: 0.25rem;"></div>
+                </div>
+                
+                <button type="submit" class="register-btn" id="registerBtn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Create Account</span>
+                </button>
+            </form>
+            
+            <div class="links">
+                Already have an account? <a href="/login">Sign In</a>
+            </div>
+            
+            <div class="terms">
+                By registering, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Password Strength Checker
+        const passwordInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirmPassword');
+        const strengthFill = document.getElementById('strengthFill');
+        const strengthText = document.getElementById('strengthText');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const registerBtn = document.getElementById('registerBtn');
+        
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let message = '';
+            let color = '';
+            
+            if (password.length === 0) {
+                return { strength: 0, message: 'Password strength', color: '#888' };
+            }
+            
+            // Length check
+            if (password.length >= 8) strength += 1;
+            if (password.length >= 12) strength += 1;
+            
+            // Lowercase
+            if (/[a-z]/.test(password)) strength += 1;
+            
+            // Uppercase
+            if (/[A-Z]/.test(password)) strength += 1;
+            
+            // Numbers
+            if (/[0-9]/.test(password)) strength += 1;
+            
+            // Special characters
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 1;
+            
+            // Determine strength level
+            if (strength <= 2) {
+                message = 'Weak password';
+                color = '#ff4444';
+                strength = 20;
+            } else if (strength <= 4) {
+                message = 'Fair password';
+                color = '#ffaa44';
+                strength = 50;
+            } else if (strength <= 6) {
+                message = 'Good password';
+                color = '#ffff44';
+                strength = 75;
+            } else {
+                message = 'Strong password!';
+                color = '#44ff44';
+                strength = 100;
+            }
+            
+            return { strength, message, color };
+        }
+        
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+            
+            if (confirm.length === 0) {
+                confirmMessage.textContent = '';
+                return true;
+            }
+            
+            if (password === confirm) {
+                confirmMessage.textContent = '✓ Passwords match';
+                confirmMessage.style.color = '#44ff44';
+                return true;
+            } else {
+                confirmMessage.textContent = '✗ Passwords do not match';
+                confirmMessage.style.color = '#ff4444';
+                return false;
+            }
+        }
+        
+        passwordInput.addEventListener('input', function() {
+            const result = checkPasswordStrength(this.value);
+            strengthFill.style.width = result.strength + '%';
+            strengthFill.style.backgroundColor = result.color;
+            strengthText.textContent = result.message;
+            strengthText.style.color = result.color;
+            checkPasswordMatch();
+        });
+        
+        confirmInput.addEventListener('input', checkPasswordMatch);
+        
+        // Form validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+            
+            if (password !== confirm) {
+                e.preventDefault();
+                confirmMessage.textContent = '✗ Passwords do not match';
+                confirmMessage.style.color = '#ff4444';
+                confirmInput.classList.add('error');
+                return false;
+            }
+            
+            if (password.length < 6) {
+                e.preventDefault();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Password must be at least 6 characters</span>';
+                const form = document.getElementById('registerForm');
+                form.insertBefore(errorDiv, form.firstChild);
+                setTimeout(() => errorDiv.remove(), 5000);
+                return false;
+            }
+            
+            const btn = document.getElementById('registerBtn');
+            btn.classList.add('loading');
+            btn.querySelector('span').textContent = 'Creating account...';
+            btn.querySelector('i').style.display = 'none';
+            
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            spinner.style.display = 'inline-block';
+            spinner.style.width = '16px';
+            spinner.style.height = '16px';
+            spinner.style.border = '2px solid rgba(0,0,0,0.3)';
+            spinner.style.borderRadius = '50%';
+            spinner.style.borderTopColor = '#0a0c10';
+            spinner.style.animation = 'spin 0.6s linear infinite';
+            btn.appendChild(spinner);
+            
+            return true;
+        });
+        
+        // Auto-clear messages
+        {% if error %}
+        setTimeout(() => {
+            const errorDiv = document.querySelector('.error-message');
+            if (errorDiv) errorDiv.remove();
+        }, 5000);
+        {% endif %}
+        
+        {% if success %}
+        setTimeout(() => {
+            const successDiv = document.querySelector('.success-message');
+            if (successDiv) successDiv.remove();
+        }, 5000);
+        {% endif %}
+        
+        console.log('✅ Register page loaded');
+    </script>
+    
+    <style>
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #0a0c10;
+            animation: spin 0.6s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .register-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</body>
+</html>

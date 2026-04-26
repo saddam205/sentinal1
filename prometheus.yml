@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration (Optional, only if running alertmanager)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+# Rule files for alerts
+# Note: Ensure alerts.yml actually exists in the same folder or comment this out
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090'] # Prometheus UI
+
+  - job_name: 'sentinel-brain'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['localhost:8000'] # Points to your FastAPI App
+    scrape_interval: 5s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'sentinel_.*|gpu_.*|attack_.*|layer_.*|risk_.*'
+        action: keep

@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-03-25 01:32:34.759535",
+  "models_trained": [
+    "cnn",
+    "minilm",
+    "bayesian"
+  ],
+  "training_results": {
+    "cnn": "success",
+    "minilm": "success",
+    "bayesian": "success"
+  },
+  "device": "cuda",
+  "model_paths": {
+    "cnn": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/layer2_cnn.pth",
+    "gnn": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/layer3_gnn.pth",
+    "minilm": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/layer3_minilm",
+    "bayesian": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/layer4_bayesian.pkl",
+    "deepseek": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/layer5_deepseek",
+    "faiss": "/mnt/c/Users/sksad/Desktop/venv_hackinhg_test/venv_hackinhg_test/valnarabilites/app3/app4/app5/app6/app7/app8/app9/training/models/faiss.index"
+  }
+}

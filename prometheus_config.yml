@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+# Rule files for alerts
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Self-monitoring: Prometheus itself moves to 9091
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9091']
+
+  # Sentinel Brain Metrics: Your FastAPI app on 9090
+  - job_name: 'sentinel-brain'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'sentinel_.*|gpu_.*|attack_.*|layer_.*|risk_.*'
+        action: keep

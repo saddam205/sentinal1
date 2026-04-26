@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-1 | Neural Intelligence Hub v6.5</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-purple: #9945FF;
+            --neon-green: #00ff9d;
+            --neon-red: #ff3131;
+            --neon-orange: #ff8800;
+            --neon-pink: #ff66cc;
+            --bg: #02040a;
+            --panel: rgba(13,17,23,0.95);
+            --border: rgba(0,255,255,0.2);
+            --grad: linear-gradient(135deg,#00ffff,#9945FF);
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        html{scroll-behavior:smooth;}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:#c9d1d9;overflow-x:hidden;}
+
+        /* ── Starfield BG ── */
+        body::before{
+            content:'';position:fixed;inset:0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,255,255,.04) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 80% 80%, rgba(153,69,255,.04) 0%, transparent 60%),
+                repeating-linear-gradient(45deg,rgba(0,255,255,.015) 0,rgba(0,255,255,.015) 1px,transparent 1px,transparent 8px);
+            pointer-events:none;z-index:0;
+        }
+
+        /* ── Header ── */
+        header{
+            position:fixed;top:0;left:0;right:0;z-index:100;
+            background:rgba(2,4,10,.92);backdrop-filter:blur(12px);
+            border-bottom:1px solid var(--border);
+            padding:.9rem 2rem;
+            display:flex;justify-content:space-between;align-items:center;
+            transition:padding .3s;
+        }
+        header.scrolled{padding:.6rem 2rem;}
+        .logo-wrap{display:flex;align-items:center;gap:12px;text-decoration:none;}
+        .logo-icon{
+            width:38px;height:38px;border-radius:8px;
+            background:var(--grad);
+            display:flex;align-items:center;justify-content:center;
+            font-size:18px;color:#000;
+            box-shadow:0 0 20px rgba(0,255,255,.3);
+            animation:pulseglow 2.5s infinite;
+        }
+        @keyframes pulseglow{0%,100%{box-shadow:0 0 15px rgba(0,255,255,.3);}50%{box-shadow:0 0 30px rgba(0,255,255,.6);}}
+        .logo-name{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:700;
+            background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .logo-ver{font-size:.65rem;color:#555;font-family:'Fira Code',monospace;letter-spacing:1px;}
+
+        nav{display:flex;gap:2rem;align-items:center;}
+        .nav-a{color:#9ca3af;text-decoration:none;font-size:.85rem;font-weight:500;transition:color .2s;display:flex;align-items:center;gap:6px;}
+        .nav-a:hover,.nav-a.active{color:var(--neon-cyan);}
+        .btn-launch{
+            background:var(--grad);color:#000;font-weight:700;font-size:.8rem;
+            padding:.55rem 1.4rem;border-radius:30px;text-decoration:none;
+            transition:transform .2s,box-shadow .2s;letter-spacing:.5px;
+        }
+        .btn-launch:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(0,255,255,.35);}
+
+        /* ── Hero ── */
+        .hero{
+            position:relative;z-index:1;min-height:100vh;
+            display:flex;align-items:center;justify-content:center;
+            padding:8rem 2rem 4rem;text-align:center;
+        }
+        .hero-inner{max-width:900px;}
+        .hero-badge{
+            display:inline-flex;align-items:center;gap:8px;
+            background:rgba(0,255,255,.08);border:1px solid rgba(0,255,255,.25);
+            padding:.35rem 1rem;border-radius:30px;font-size:.7rem;font-family:'Fira Code',monospace;
+            color:var(--neon-cyan);letter-spacing:1px;margin-bottom:1.5rem;
+        }
+        .badge-dot{width:6px;height:6px;background:var(--neon-green);border-radius:50%;animation:blink 2s infinite;}
+        @keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+        h1{
+            font-family:'Orbitron',sans-serif;font-size:clamp(2.5rem,6vw,5rem);
+            font-weight:900;line-height:1.1;margin-bottom:1.5rem;
+            letter-spacing:2px;
+        }
+        h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        h1 .dim{color:#4b5563;}
+        .hero-sub{font-size:1.05rem;color:#6b7280;max-width:600px;margin:0 auto 2.5rem;line-height:1.7;}
+        .hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+        .btn-primary{
+            background:var(--grad);color:#000;font-weight:700;font-size:.9rem;
+            padding:.8rem 2rem;border-radius:30px;text-decoration:none;
+            display:inline-flex;align-items:center;gap:8px;
+            transition:transform .2s,box-shadow .2s;
+        }
+        .btn-primary:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,255,255,.4);}
+        .btn-outline{
+            background:transparent;color:var(--neon-cyan);font-weight:600;font-size:.9rem;
+            padding:.8rem 2rem;border-radius:30px;text-decoration:none;border:1px solid rgba(0,255,255,.4);
+            display:inline-flex;align-items:center;gap:8px;transition:all .2s;
+        }
+        .btn-outline:hover{background:rgba(0,255,255,.08);border-color:var(--neon-cyan);}
+
+        /* Stats bar */
+        .stats-bar{
+            display:flex;justify-content:center;gap:3rem;flex-wrap:wrap;
+            margin-top:4rem;padding-top:2rem;border-top:1px solid rgba(0,255,255,.1);
+        }
+        .stat{text-align:center;}
+        .stat-n{font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:700;
+            background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .stat-l{font-size:.75rem;color:#4b5563;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}
+
+        /* ── Section shared ── */
+        section{position:relative;z-index:1;padding:6rem 2rem;}
+        .section-wrap{max-width:1200px;margin:0 auto;}
+        .section-label{
+            font-family:'Fira Code',monospace;font-size:.7rem;letter-spacing:2px;
+            color:var(--neon-cyan);text-transform:uppercase;margin-bottom:.75rem;
+            display:flex;align-items:center;gap:8px;
+        }
+        .section-label::before{content:'//';color:#374151;}
+        h2{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:700;
+            margin-bottom:1rem;letter-spacing:1px;}
+        h2 .accent{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .section-desc{color:#6b7280;font-size:1rem;max-width:600px;line-height:1.7;margin-bottom:3rem;}
+
+        /* ── Features ── */
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;}
+        .feature-card{
+            background:rgba(13,17,23,.9);border:1px solid rgba(0,255,255,.12);
+            border-radius:12px;padding:1.75rem;
+            transition:all .3s;position:relative;overflow:hidden;
+        }
+        .feature-card::before{
+            content:'';position:absolute;inset:0;
+            background:linear-gradient(135deg,rgba(0,255,255,.03),transparent);
+            opacity:0;transition:opacity .3s;
+        }
+        .feature-card:hover{border-color:rgba(0,255,255,.4);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,255,255,.1);}
+        .feature-card:hover::before{opacity:1;}
+        .feat-icon{
+            width:44px;height:44px;border-radius:10px;margin-bottom:1rem;
+            display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+        }
+        .feat-title{font-size:1rem;font-weight:600;margin-bottom:.5rem;color:#e2e8f0;}
+        .feat-desc{font-size:.85rem;color:#6b7280;line-height:1.6;}
+
+        /* ── 7-Layer Architecture ── */
+        .layers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+        .layer-card{
+            background:rgba(13,17,23,.9);border-radius:10px;padding:1.25rem;
+            border-left:3px solid;transition:all .3s;
+        }
+        .layer-card:hover{transform:translateX(6px);}
+        .layer-num{font-family:'Fira Code',monospace;font-size:.65rem;letter-spacing:2px;
+            text-transform:uppercase;margin-bottom:.5rem;}
+        .layer-name{font-size:.95rem;font-weight:600;margin-bottom:.4rem;color:#e2e8f0;}
+        .layer-desc{font-size:.8rem;color:#6b7280;line-height:1.5;}
+        .l1{border-color:#00ffff;} .l1 .layer-num{color:#00ffff;}
+        .l2{border-color:#9945FF;} .l2 .layer-num{color:#9945FF;}
+        .l3{border-color:#3b82f6;} .l3 .layer-num{color:#3b82f6;}
+        .l4{border-color:#ffd700;} .l4 .layer-num{color:#ffd700;}
+        .l5{border-color:#00ff9d;} .l5 .layer-num{color:#00ff9d;}
+        .l6{border-color:#ff8800;} .l6 .layer-num{color:#ff8800;}
+        .l7{border-color:#ff66cc;} .l7 .layer-num{color:#ff66cc;}
+
+        /* ── Tools ── */
+        .tools-grid{display:flex;flex-wrap:wrap;gap:.75rem;}
+        .tool-chip{
+            background:rgba(0,255,255,.06);border:1px solid rgba(0,255,255,.2);
+            border-radius:30px;padding:.4rem 1rem;font-size:.8rem;color:#9ca3af;
+            display:flex;align-items:center;gap:6px;transition:all .2s;cursor:default;
+        }
+        .tool-chip:hover{background:rgba(0,255,255,.12);color:var(--neon-cyan);border-color:rgba(0,255,255,.4);}
+        .tool-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+        /* ── CTA ── */
+        .cta-section{
+            background:linear-gradient(135deg,rgba(0,255,255,.05),rgba(153,69,255,.05));
+            border:1px solid rgba(0,255,255,.15);border-radius:20px;
+            padding:4rem 3rem;text-align:center;
+        }
+        .cta-section h2{margin-bottom:.75rem;}
+        .cta-section p{color:#6b7280;font-size:1rem;margin-bottom:2rem;}
+        .cta-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;}
+
+        /* ── Footer ── */
+        footer{
+            border-top:1px solid rgba(0,255,255,.1);
+            padding:3rem 2rem 2rem;
+            position:relative;z-index:1;
+        }
+        .footer-grid{
+            max-width:1200px;margin:0 auto;
+            display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:2rem;
+        }
+        .footer-brand p{font-size:.8rem;color:#4b5563;line-height:1.6;margin-top:.75rem;}
+        .footer-col h4{font-size:.75rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+            color:#6b7280;margin-bottom:1rem;}
+        .footer-col a{display:block;color:#4b5563;text-decoration:none;font-size:.85rem;margin-bottom:.5rem;transition:color .2s;}
+        .footer-col a:hover{color:var(--neon-cyan);}
+        .footer-bottom{
+            max-width:1200px;margin:0 auto;
+            border-top:1px solid rgba(0,255,255,.08);padding-top:1.5rem;
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;
+        }
+        .footer-bottom p{font-size:.75rem;color:#374151;}
+        .footer-bottom .social{display:flex;gap:1rem;}
+        .social a{color:#374151;text-decoration:none;font-size:.9rem;transition:color .2s;}
+        .social a:hover{color:var(--neon-cyan);}
+
+        /* ── Reveal animations ── */
+        .reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease;}
+        .reveal.visible{opacity:1;transform:translateY(0);}
+        .reveal-delay-1{transition-delay:.1s;}
+        .reveal-delay-2{transition-delay:.2s;}
+        .reveal-delay-3{transition-delay:.3s;}
+
+        /* ── Responsive ── */
+        @media(max-width:768px){
+            nav{display:none;}
+            .footer-grid{grid-template-columns:1fr 1fr;}
+            .stats-bar{gap:1.5rem;}
+        }
+        @media(max-width:480px){
+            .footer-grid{grid-template-columns:1fr;}
+            .hero-actions{flex-direction:column;align-items:center;}
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header id="main-header">
+    <a class="logo-wrap" href="/">
+        <div class="logo-icon"><i class="fas fa-shield-halved"></i></div>
+        <div>
+            <div class="logo-name">SENTINEL-1</div>
+            <div class="logo-ver">v6.5 · 7-LAYER NEURAL BRAIN</div>
+        </div>
+    </a>
+    <nav>
+        <a class="nav-a active" href="/"><i class="fas fa-home"></i> Home</a>
+        <a class="nav-a" href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-a" href="/scan"><i class="fas fa-search"></i> Scanner</a>
+        <a class="nav-a" href="/results"><i class="fas fa-file-alt"></i> Results</a>
+        <a class="nav-a" href="/terminal"><i class="fas fa-terminal"></i> Terminal</a>
+        <a class="btn-launch" href="/login"><i class="fas fa-sign-in-alt"></i> Launch</a>
+    </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-inner">
+        <div class="hero-badge reveal">
+            <span class="badge-dot"></span>
+            SENTINEL-1 v6.5 &nbsp;·&nbsp; 7-LAYER NEURAL BRAIN ACTIVE
+        </div>
+        <h1 class="reveal reveal-delay-1">
+            <span class="dim">AI-POWERED</span><br>
+            <span class="grad">CYBERSECURITY</span><br>
+            <span class="dim">INTELLIGENCE</span>
+        </h1>
+        <p class="hero-sub reveal reveal-delay-2">
+            Advanced 7-layer neural analysis engine combining CNN pattern recognition, GNN attack graph modeling, RAG vulnerability search, Bayesian inference, GAN payload evolution, and Emily AI reasoning — all in one platform.
+        </p>
+        <div class="hero-actions reveal reveal-delay-3">
+            <a href="/register" class="btn-primary"><i class="fas fa-user-plus"></i> Create Account</a>
+            <a href="/login" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+            <a href="/dashboard" class="btn-outline"><i class="fas fa-eye"></i> Live Demo</a>
+        </div>
+        <div class="stats-bar reveal">
+            <div class="stat"><div class="stat-n">7</div><div class="stat-l">Neural Layers</div></div>
+            <div class="stat"><div class="stat-n">13+</div><div class="stat-l">Attack Tools</div></div>
+            <div class="stat"><div class="stat-n">GPU</div><div class="stat-l">Accelerated</div></div>
+            <div class="stat"><div class="stat-n">RT</div><div class="stat-l">WebSocket Feed</div></div>
+            <div class="stat"><div class="stat-n">CVE</div><div class="stat-l">RAG Database</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section style="padding-top:2rem;">
+    <div class="section-wrap">
+        <div class="section-label reveal">Platform Capabilities</div>
+        <h2 class="reveal"><span class="accent">Everything</span> You Need</h2>
+        <p class="section-desc reveal">From reconnaissance to exploitation, Sentinel-1 automates every phase of a penetration test with AI intelligence at each step.</p>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feat-icon" style="background:rgba(0,255,255,.1);color:#00ffff;"><i class="fas fa-brain"></i></div>
+                <div class="feat-title">7-Layer Neural Brain</div>
+                <div class="feat-desc">Sequential AI pipeline processes targets through CNN, GNN, MiniLM RAG, BNN, GAN, Emily AI, and SPINE correlation layers.</div>
+            </div>
+            <div class="feature-card reveal reveal-delay-1">
+                <div class="feat-icon" style="background:rgba(153,69,255,.1);color:#9945FF;"><i class="fas fa-project-diagram"></i></div>
+                <div class="feat-title">Attack Graph Visualization</div>
+                <div class="feat-desc">Real-time vis.js attack graphs built by GNN analysis — visualize every attack path and critical vulnerability chain.</div>
+            </div>
+            <div class="feature-card reveal reveal-delay-2">
+                <div class="feat-icon" style="background:rgba(255,136,0,.1);color:#ff8800;"><i class="fas fa-robot"></i></div>
+                <div class="feat-title">Emily AI Exploit Engine</div>
+                <div class="feat-desc">Advanced exploit analyst generates custom payloads, plans attack chains, and provides confidence-scored recommendations.</div>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feat-icon" style="background:rgba(0,255,157,.1);color:#00ff9d;"><i class="fas fa-tools"></i></div>
+                <div class="feat-title">Integrated Tool Station</div>
+                <div class="feat-desc">13+ tools including SQLMap, Nmap, Nikto, Hydra, Metasploit, WPScan, Gobuster, Aircrack-ng — all in one panel.</div>
+            </div>
+            <div class="feature-card reveal reveal-delay-1">
+                <div class="feat-icon" style="background:rgba(255,49,49,.1);color:#ff3131;"><i class="fas fa-link"></i></div>
+                <div class="feat-title">SPINE Correlation Engine</div>
+                <div class="feat-desc">Correlates events across all tool outputs, detects attack patterns, and produces a unified risk score with Bayesian confidence.</div>
+            </div>
+            <div class="feature-card reveal reveal-delay-2">
+                <div class="feat-icon" style="background:rgba(255,102,204,.1);color:#ff66cc;"><i class="fas fa-chart-line"></i></div>
+                <div class="feat-title">Live Grafana Dashboard</div>
+                <div class="feat-desc">Real-time metrics streaming — GPU memory, attack rates, neural layer health — via Socket.IO with Prometheus integration.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 7-Layer Architecture -->
+<section>
+    <div class="section-wrap">
+        <div class="section-label reveal">Neural Architecture</div>
+        <h2 class="reveal">The <span class="accent">7-Layer Brain</span></h2>
+        <p class="section-desc reveal">Each layer specializes in a different aspect of threat analysis, working sequentially to produce comprehensive security intelligence.</p>
+        <div class="layers-grid">
+            <div class="layer-card l1 reveal"><div class="layer-num">Layer 01 · CNN</div><div class="layer-name">Pattern Recognition</div><div class="layer-desc">Deep convolutional network detects service fingerprints, anomaly patterns, and behavioral signatures across the attack surface.</div></div>
+            <div class="layer-card l2 reveal reveal-delay-1"><div class="layer-num">Layer 02 · GNN</div><div class="layer-name">Graph Neural Network</div><div class="layer-desc">Builds and analyzes the attack surface graph — mapping service relationships, exploit paths, and pivot points.</div></div>
+            <div class="layer-card l3 reveal reveal-delay-2"><div class="layer-num">Layer 03 · MiniLM</div><div class="layer-name">RAG Vulnerability Search</div><div class="layer-desc">Semantic GPU-accelerated search against the CVE database — finds matching vulnerabilities with similarity scoring.</div></div>
+            <div class="layer-card l4 reveal"><div class="layer-num">Layer 04 · BNN</div><div class="layer-name">Bayesian Inference</div><div class="layer-desc">Probabilistic reasoning with full uncertainty quantification — produces confidence intervals for every risk prediction.</div></div>
+            <div class="layer-card l5 reveal reveal-delay-1"><div class="layer-num">Layer 05 · GAN</div><div class="layer-name">Payload Evolution</div><div class="layer-desc">Generative adversarial network evolves and optimizes attack payloads across multiple generations for maximum evasion.</div></div>
+            <div class="layer-card l6 reveal reveal-delay-2"><div class="layer-num">Layer 06 · Emily AI</div><div class="layer-name">Exploit Analysis</div><div class="layer-desc">Advanced reasoning engine generates complete exploit chains, vulnerability reports, and tool-specific attack commands.</div></div>
+            <div class="layer-card l7 reveal"><div class="layer-num">Layer 07 · SPINE</div><div class="layer-name">Correlation Engine</div><div class="layer-desc">Synthesizes all layer outputs into a unified attack graph, risk score, and prioritized remediation plan.</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- Supported Tools -->
+<section style="padding-top:2rem;">
+    <div class="section-wrap">
+        <div class="section-label reveal">Tool Coverage</div>
+        <h2 class="reveal">13+ <span class="accent">Integrated Tools</span></h2>
+        <p class="section-desc reveal">Every major penetration testing tool, orchestrated by AI and accessible from a single unified interface.</p>
+        <div class="tools-grid reveal">
+            <span class="tool-chip"><span class="tool-dot" style="background:#ef4444;"></span>SQLMap</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#22c55e;"></span>Nmap</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#3b82f6;"></span>Nikto</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#eab308;"></span>Hydra</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#06b6d4;"></span>Gobuster</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#ef4444;"></span>Metasploit</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#60a5fa;"></span>WPScan</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#f97316;"></span>John the Ripper</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#a855f7;"></span>Aircrack-ng</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#fb923c;"></span>Burp Suite</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#60a5fa;"></span>Dirb</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#818cf8;"></span>BloodHound</span>
+            <span class="tool-chip"><span class="tool-dot" style="background:#34d399;"></span>Wireshark</span>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section>
+    <div class="section-wrap">
+        <div class="cta-section reveal">
+            <div class="section-label" style="justify-content:center;margin-bottom:.5rem;">Get Started</div>
+            <h2>Ready to <span class="accent">Secure Your Infrastructure</span>?</h2>
+            <p>Join the next generation of AI-powered cybersecurity intelligence. For authorized testing only.</p>
+            <div class="cta-btns">
+                <a href="/register" class="btn-primary"><i class="fas fa-user-plus"></i> Create Account</a>
+                <a href="/login" class="btn-outline"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="footer-grid">
+        <div class="footer-brand">
+            <a class="logo-wrap" href="/" style="margin-bottom:.75rem;display:inline-flex;">
+                <div class="logo-icon" style="width:32px;height:32px;font-size:15px;"><i class="fas fa-shield-halved"></i></div>
+                <div><div class="logo-name" style="font-size:1.1rem;">SENTINEL-1</div></div>
+            </a>
+            <p>Advanced AI-powered cybersecurity intelligence platform with 7-layer neural brain architecture. For authorized security testing only.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Platform</h4>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/scan">Scanner</a>
+            <a href="/terminal">AI Terminal</a>
+            <a href="/results">Results</a>
+            <a href="/history">History</a>
+        </div>
+        <div class="footer-col">
+            <h4>Tools</h4>
+            <a href="/tools">Tool Station</a>
+            <a href="/correlation">Attack Graph</a>
+            <a href="/burp-testing">Burp Testing</a>
+            <a href="/admin">Admin Panel</a>
+        </div>
+        <div class="footer-col">
+            <h4>System</h4>
+            <a href="/api/status">API Status</a>
+            <a href="/api/health">Health Check</a>
+            <a href="/metrics">Prometheus</a>
+            <a href="/docs">API Docs</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2025 Sentinel-1 Intelligence Hub · Neural AI Platform v6.5 · For authorized testing only</p>
+        <div class="social">
+            <a href="#"><i class="fab fa-github"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Scroll header shrink
+    window.addEventListener('scroll', () => {
+        document.getElementById('main-header').classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    reveals.forEach(el => observer.observe(el));
+
+    // Immediately reveal above-fold
+    document.querySelectorAll('.hero .reveal').forEach(el => {
+        setTimeout(() => el.classList.add('visible'), 100);
+    });
+</script>
+</body>
+</html>
